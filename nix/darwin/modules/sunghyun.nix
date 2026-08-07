@@ -17,6 +17,7 @@
 let
   cfg = config.services.sunghyun;
   package = self.packages.${pkgs.stdenv.hostPlatform.system}.sunghyun;
+  home = config.users.users.${config.system.primaryUser}.home;
 in
 {
   options.services.sunghyun = {
@@ -34,9 +35,13 @@ in
       echo "sunghyun: staging stable CLI copy at /usr/local/bin (TCC path stability)"
       mkdir -p /usr/local/bin
       install -m 755 ${package}/bin/sunghyun /usr/local/bin/sunghyun
-      # Migration (2026-08-08): binary renamed from sunghyun-os; remove the
-      # stale copy in the same activation so no orphan binary remains.
+      # Migration (2026-08-08): binary renamed from sunghyun-os; remove every
+      # stale copy so no orphan can shadow `sunghyun` via PATH order. The
+      # user-dir copies came from historical `cargo install` runs and were
+      # found live after the first cleanup only covered /usr/local/bin.
       rm -f /usr/local/bin/sunghyun-os
+      rm -f ${lib.escapeShellArg home}/.local/bin/sunghyun-os
+      rm -f ${lib.escapeShellArg home}/.cargo/bin/sunghyun-os
     '';
   };
 }

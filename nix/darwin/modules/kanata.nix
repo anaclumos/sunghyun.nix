@@ -40,7 +40,18 @@ in
     };
   };
 
-  config = lib.mkIf cfg.kanata.enable {
+  config = lib.mkMerge [
+    (lib.mkIf (!cfg.kanata.enable) {
+      # Boot-load hardening must converge declaratively, not only in the
+      # runtime `sunghyun kanata disable` path (which never runs when the
+      # daemon was already parked — observed live 2026-08-08): with the
+      # engine off, persist a launchd disable override every activation so a
+      # bare plist rename can never re-arm the daemon.
+      system.activationScripts.extraActivation.text = lib.mkAfter ''
+        launchctl disable system/com.anaclumos.kanata || true
+      '';
+    })
+    (lib.mkIf cfg.kanata.enable {
     # extraActivation because arbitrary activationScripts.<name> entries are
     # silently ignored by nix-darwin; types.lines concatenates across modules.
     system.activationScripts.extraActivation.text = lib.mkAfter ''
@@ -65,5 +76,6 @@ in
         StandardErrorPath = "${logDir}/kanata.err.log";
       };
     };
-  };
+    })
+  ];
 }
