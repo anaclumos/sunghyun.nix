@@ -10,14 +10,18 @@
 # Keep-alive probes use sudo -n only. Destructive callers should use plain
 # sudo (or sudo_do) so a flaky timestamp can re-prompt instead of hard-failing.
 
+# Test the controlling terminal, not stdin: a piped or redirected stdin says
+# nothing about whether sudo can prompt, and sudo reads from /dev/tty.
+sudo_has_controlling_tty() { { : < /dev/tty; } 2>/dev/null; }
+
 sudo_keepalive_start() {
   if sudo -n true 2>/dev/null; then
     :
-  elif [[ -t 0 ]]; then
+  elif sudo_has_controlling_tty; then
     echo "sudo: enter password once for privileged steps" >&2
-    sudo -v || return 1
+    sudo -v < /dev/tty || return 1
   else
-    echo "sudo: no credential cache and no TTY for sudo -v" >&2
+    echo "sudo: no credential cache and no controlling terminal for sudo -v" >&2
     return 1
   fi
 

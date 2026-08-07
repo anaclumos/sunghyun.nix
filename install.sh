@@ -36,14 +36,19 @@ log() { printf 'sunghyun-install: %s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
 # --- sudo keep-alive (single password, then unattended) ---------------------
+# The password gate must test the controlling terminal, not stdin: under the
+# documented entry point (`curl ... | bash`) stdin is the curl pipe, so `-t 0`
+# is false even in Terminal, and sudo reads from /dev/tty anyway.
+has_controlling_tty() { { : < /dev/tty; } 2>/dev/null; }
+
 sudo_keepalive_start() {
   if sudo -n true 2>/dev/null; then
     :
-  elif [[ -t 0 ]]; then
+  elif has_controlling_tty; then
     log "sudo: enter password once; install continues unattended after this"
-    sudo -v || die "sudo -v failed"
+    sudo -v < /dev/tty || die "sudo -v failed"
   else
-    die "sudo needs a Terminal password once (no TTY and no cached credentials)"
+    die "sudo needs a password once but there is no controlling terminal; run this from Terminal"
   fi
   (
     while true; do
