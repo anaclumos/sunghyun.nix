@@ -102,7 +102,7 @@ fn open_and_poll(
         }
     }
     StepOutcome::Skipped(format!(
-        "{what} not granted within {}s; skipping (re-run post-switch or the next darwin-rebuild switch converges)",
+        "{what} not granted within {}s; skipping (the next darwin-rebuild switch reopens this pane on its own)",
         budget.as_secs()
     ))
 }
