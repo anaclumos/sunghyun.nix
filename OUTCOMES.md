@@ -109,3 +109,15 @@ Exactly three first-boot toggles remain, each in a window the system opens:
 3. Accessibility for `/usr/local/bin/sunghyun` (Privacy & Security pane, for
    tiling; the grant is per code identity, so a rebuilt binary re-runs this
    toggle via post-switch open-pane-and-poll)
+
+**Administration dialogs (macOS 26, measured on a pristine guest 2026-08-08).**
+A first boot also raises two blocking dialogs titled "Terminal would like to
+administer your computer": the first when the Determinate installer creates the
+encrypted `/nix` APFS volume, the second during nix-darwin activation. They are
+Allow-or-deny clicks with no typing, and macOS raises them against the
+responsible app (whichever terminal ran the one-liner), so nothing in this repo
+suppresses them and no installer flag avoids them. Budget them alongside the one
+sudo password: a first run is one password plus two clicks. A second run on the
+same machine raised neither dialog, though that run also had no volume to create
+and no activation work to do, so it does not by itself prove the grant is
+remembered.
