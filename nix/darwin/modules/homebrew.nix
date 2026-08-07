@@ -29,6 +29,12 @@
     casks = [
       "1password"
       "cursor"
+      # Cursor Agent CLI (binary: cursor-agent). Official homebrew/cask
+      # formula, so it needs no `brew trust` grant, tracks the vendor's own
+      # release channel, and stays writable so `cursor-agent update` works —
+      # none of which a Nix store copy can do. Linux gets nixpkgs cursor-cli
+      # from nix/home/linux.nix instead.
+      "cursor-cli"
       "ghostty"
       "itsycal"
       # Primary keyboard engine (OUTCOMES.md a-e). Cask (KE 16.x), not

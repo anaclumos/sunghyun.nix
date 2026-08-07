@@ -38,6 +38,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     });
 
     steps.push(check_binary_features());
+    steps.push(check_cursor_agent());
     steps.push(check_ime_mapping(&config));
     steps.push(check_apps(&config));
     steps.push(check_tiles());
@@ -64,6 +65,53 @@ fn check_binary_features() -> StepReport {
         "binary",
         "features: open,input-source,tile,launcher,clipboard,verify,post-switch,kanata",
     )
+}
+
+/// OUTCOMES.md row p: Cursor Agent CLI present. macOS installs it through the
+/// official `cursor-cli` Homebrew cask declared in the flake; Linux gets the
+/// nixpkgs `cursor-cli` package from the portable layer. Either way the binary
+/// is `cursor-agent`.
+fn check_cursor_agent() -> StepReport {
+    let candidates = [
+        "/opt/homebrew/bin/cursor-agent",
+        "/usr/local/bin/cursor-agent",
+    ];
+    let home_candidate = directories::UserDirs::new()
+        .map(|u| u.home_dir().join(".local/bin/cursor-agent"))
+        .filter(|p| p.exists());
+    let found = candidates
+        .iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .map(|p| (*p).to_string())
+        .or_else(|| home_candidate.map(|p| p.display().to_string()))
+        .or_else(|| {
+            Command::new("sh")
+                .args(["-c", "command -v cursor-agent 2>/dev/null"])
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                .filter(|s| !s.is_empty())
+        });
+    match found {
+        Some(path) => StepReport::ok("cursor_agent", format!("cursor-agent present ({path})")),
+        None if headless::is_headless() => StepReport::skipped(
+            "cursor_agent",
+            "cursor-agent not on PATH (headless; the portable layer installs it on the next switch)",
+        ),
+        None if cfg!(target_os = "macos")
+            && !std::path::Path::new("/opt/homebrew/bin/brew").exists() =>
+        {
+            StepReport::skipped(
+                "cursor_agent",
+                "Homebrew absent, so the cursor-cli cask could not install yet; converges next switch",
+            )
+        }
+        None => StepReport::failed(
+            "cursor_agent",
+            "cursor-agent missing; the cursor-cli cask (macOS) / nixpkgs cursor-cli (Linux) should have installed it",
+        ),
+    }
 }
 
 /// Outcome check (OUTCOMES.md a-e): a tap-hold keyboard engine is configured
