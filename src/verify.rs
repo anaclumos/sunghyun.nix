@@ -46,6 +46,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_clipboard(&config));
     steps.push(check_launcher(&config));
     steps.push(check_keyboard_engine());
+    steps.push(check_fn_state());
     steps.push(check_kanata_config(&config));
     steps.push(check_hushlogin());
     steps.push(check_spotlight());
@@ -362,6 +363,22 @@ fn check_spotlight() -> StepReport {
         ),
         Err(crate::error::ActionError::Skipped(m)) => StepReport::skipped("spotlight", m),
         Err(e) => StepReport::failed("spotlight", e.to_string()),
+    }
+}
+
+/// OUTCOMES.md (o): the media top row is only real if IOHIDSystem agrees with
+/// the declared preference, not just the plist.
+fn check_fn_state() -> StepReport {
+    match crate::fn_state::current_mode() {
+        Ok(0) => StepReport::ok("fn_state", "top row fires media bare (HIDFKeyMode=0)"),
+        Ok(mode) => StepReport::failed(
+            "fn_state",
+            format!(
+                "IOHIDSystem enforces HIDFKeyMode={mode}; the declared media top row has not converged"
+            ),
+        ),
+        Err(crate::error::ActionError::Skipped(m)) => StepReport::skipped("fn_state", m),
+        Err(e) => StepReport::failed("fn_state", e.to_string()),
     }
 }
 

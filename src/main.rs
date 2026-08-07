@@ -5,6 +5,7 @@ mod bootstrap;
 mod config;
 mod dispatch;
 mod error;
+mod fn_state;
 mod headless;
 mod kanata_ctl;
 mod menubar;
@@ -85,6 +86,14 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Top-row fn behaviour: push the declared `fnState` into IOHIDSystem now
+    ///
+    /// `system.defaults` only writes the preference, which IOHIDSystem reads at
+    /// login, so an already-running session keeps the old top row until this runs.
+    FnState {
+        #[command(subcommand)]
+        cmd: FnStateCmd,
+    },
     /// Kanata LaunchDaemon control (enable only via `--safe` passthrough proof + rollback)
     Kanata {
         #[command(subcommand)]
@@ -95,6 +104,22 @@ enum Commands {
     /// Single source of truth for the VM gate: the mas convergence
     /// LaunchDaemon calls this instead of re-implementing the sysctl probe.
     Virt,
+}
+
+#[derive(Subcommand, Debug)]
+enum FnStateCmd {
+    /// Print the mode IOHIDSystem is enforcing right now
+    Status,
+    /// Make IOHIDSystem enforce the given mode
+    Apply {
+        /// true = "Use F1, F2, etc. keys as standard function keys"
+        #[arg(
+            long,
+            action = clap::ArgAction::Set,
+            value_parser = clap::builder::BoolishValueParser::new()
+        )]
+        standard_function_keys: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -310,6 +335,38 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         }
+        Commands::FnState { cmd } => match cmd {
+            FnStateCmd::Status => match fn_state::current_mode() {
+                Ok(mode) => {
+                    println!("standard_function_keys={}", mode != 0);
+                    ExitCode::SUCCESS
+                }
+                Err(error::ActionError::Skipped(m)) => {
+                    eprintln!("skipped: {m}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    ExitCode::FAILURE
+                }
+            },
+            FnStateCmd::Apply {
+                standard_function_keys,
+            } => match fn_state::apply(standard_function_keys) {
+                Ok(()) => {
+                    println!("standard_function_keys={standard_function_keys}");
+                    ExitCode::SUCCESS
+                }
+                Err(error::ActionError::Skipped(m)) => {
+                    eprintln!("skipped: {m}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    ExitCode::FAILURE
+                }
+            },
+        },
         Commands::Kanata { cmd } => match cmd {
             KanataCmd::Status => match kanata_ctl::status() {
                 Ok(()) => ExitCode::SUCCESS,
