@@ -256,20 +256,57 @@ pub fn step_spotlight(ctx: &StepContext) -> StepOutcome {
     if cfg!(not(target_os = "macos")) {
         return StepOutcome::Skipped("Spotlight is macOS-only".into());
     }
-    match spotlight::is_command_space_enabled() {
-        Ok(true) => return StepOutcome::Ok("Spotlight ⌘Space already enabled".into()),
-        Ok(false) => {}
-        Err(crate::error::ActionError::Skipped(m)) => return StepOutcome::Skipped(m),
-        Err(e) => return StepOutcome::Failed(e.to_string()),
-    }
     if ctx.dry_run {
-        return StepOutcome::Skipped("would restore Spotlight ⌘Space".into());
+        return StepOutcome::Skipped(
+            "would restore Spotlight ⌘Space, Clipboard History, and the terminal alias".into(),
+        );
     }
-    match spotlight::restore_command_space() {
-        Ok(()) => StepOutcome::Ok("Spotlight ⌘Space restored".into()),
-        Err(crate::error::ActionError::Skipped(m)) => StepOutcome::Skipped(m),
-        Err(e) => StepOutcome::Failed(e.to_string()),
+
+    // Converge all three Spotlight outcomes. An early return on "⌘Space is
+    // already enabled" is wrong: that is the factory default, so on a fresh Mac
+    // the step used to exit before ever installing ~/Applications/terminal.app,
+    // and `verify` closed every first install with
+    //   [failed] terminal_alias: ... run `sunghyun spotlight restore`
+    // which is both a false failure and an owner instruction the CLI can do
+    // itself.
+    let mut done: Vec<&str> = Vec::new();
+    let mut skipped: Vec<String> = Vec::new();
+    let mut failed: Vec<String> = Vec::new();
+
+    match spotlight::is_command_space_enabled() {
+        Ok(true) => done.push("⌘Space"),
+        Ok(false) => match spotlight::restore_command_space() {
+            Ok(()) => done.push("⌘Space restored"),
+            Err(crate::error::ActionError::Skipped(m)) => skipped.push(m),
+            Err(e) => failed.push(e.to_string()),
+        },
+        Err(crate::error::ActionError::Skipped(m)) => skipped.push(m),
+        Err(e) => failed.push(e.to_string()),
     }
+
+    match spotlight::enable_pasteboard_history() {
+        Ok(()) => done.push("Clipboard History"),
+        Err(crate::error::ActionError::Skipped(m)) => skipped.push(m),
+        Err(e) => failed.push(e.to_string()),
+    }
+
+    match spotlight::install_terminal_ghostty_alias(&ctx.home) {
+        Ok(()) => done.push("terminal→Ghostty alias"),
+        Err(crate::error::ActionError::Skipped(m)) => skipped.push(m),
+        Err(e) => failed.push(e.to_string()),
+    }
+
+    if !failed.is_empty() {
+        return StepOutcome::Failed(failed.join("; "));
+    }
+    if done.is_empty() {
+        return StepOutcome::Skipped(skipped.join("; "));
+    }
+    let mut msg = done.join(", ");
+    if !skipped.is_empty() {
+        msg.push_str(&format!(" (skipped: {})", skipped.join("; ")));
+    }
+    StepOutcome::Ok(msg)
 }
 
 /// Time Machine menu extra is declared in nix-darwin CustomUserPreferences and

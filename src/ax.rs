@@ -57,8 +57,14 @@ pub fn accessibility_status() -> AxGateOutcome {
             "Accessibility skipped (headless); grant later for tiling".into(),
         )
     } else {
-        AxGateOutcome::Failed(format!(
-            "Accessibility not granted to the binary itself ({}); tile fails under Karabiner until granted — `sunghyun post-switch` opens the pane and polls",
+        // Skipped, not Failed. macOS 27 gates the Accessibility toggle itself
+        // behind Touch ID, so nothing on this side can flip it; post-switch has
+        // already opened the pane and polled. That is the settled residue
+        // policy for TCC surfaces -- skip, never fail, converge on the next
+        // switch -- and a hard failure here made every unattended install end
+        // on a red line it could not act on.
+        AxGateOutcome::Skipped(format!(
+            "Accessibility not granted to the binary itself ({}); tiling stays inert until the owner flips the toggle post-switch opened — converges on the next switch",
             probe.running_path_display()
         ))
     }
