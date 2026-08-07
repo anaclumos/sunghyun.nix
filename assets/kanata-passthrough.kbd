@@ -1,0 +1,34 @@
+;; Stage-0 known-good: transparent passthrough only.
+;; Used by `sunghyun kanata enable --safe` before loading the full stack.
+;; Identity deflayer + process-unmapped-keys → every listed key must work.
+;; Stage-0 keeps plain lmet/rmet (no dual-function modifiers).
+
+(defcfg
+  process-unmapped-keys yes
+  danger-enable-cmd no
+  log-layer-changes no
+)
+
+(defsrc
+  caps
+  a b c d e f g h i j k l m n o p q r s t u v w x y z
+  1 2 3 4 5 6 7 8 9 0
+  left right up down ret
+  lmet rmet
+  lsft rsft
+  lctl rctl
+  lalt ralt
+  spc tab bspc esc
+)
+
+(deflayer base
+  caps
+  a b c d e f g h i j k l m n o p q r s t u v w x y z
+  1 2 3 4 5 6 7 8 9 0
+  left right up down ret
+  lmet rmet
+  lsft rsft
+  lctl rctl
+  lalt ralt
+  spc tab bspc esc
+)

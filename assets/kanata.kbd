@@ -1,0 +1,107 @@
+;; sunghyun keyboard stack (shipped with the binary)
+;; Requires: Kanata cmd_allowed + (defcfg danger-enable-cmd yes)
+;; macOS driver pin: Karabiner-DriverKit-VirtualHIDDevice v6.2.0
+;; https://github.com/jtroo/kanata/blob/main/docs/config.adoc
+;; https://github.com/jtroo/kanata/blob/main/docs/setup-macos.md
+;;
+;; Brick class (2026-08-07): exclusive IOHID grab without healthy VirtualHID
+;; output drops every key (Accessibility Keyboard / OSK included). Daemon must
+;; run as root; enable only via `sunghyun kanata enable` (watchdog + proof).
+;;
+;; Bindings:
+;; - Caps tap = tile maximize; Caps hold = Hyper
+;; - Hyper arrows / 1-4 / Enter / W = tiling; Hyper+J = default browser
+;; - L⌘ tap = ABC IME; R⌘ tap = 2-Set Korean; hold = normal ⌘ (⌘C/V chords)
+;; - ⌘⇧V = Spotlight clipboard (⌘Space then ⌘4)
+;; - Cmd-Space stays Apple Spotlight (not rebound here)
+;;
+;; Bootstrap substitutes HOME_DIR_PLACEHOLDER with the user home path.
+;; Wrapper re-enters the console Aqua session when Kanata runs as root.
+
+(defcfg
+  process-unmapped-keys yes
+  danger-enable-cmd yes
+  log-layer-changes yes
+  alias-to-trigger-on-load bootproof
+)
+
+(defsrc
+  caps
+  a b c d e f g h i j k l m n o p q r s t u v w x y z
+  1 2 3 4 5
+  left right up down ret
+  lmet rmet
+  f1 f2 f3 f6 f7 f8 f9 f10 f11 f12
+)
+
+(defvar
+  tt 200
+  ht 200
+)
+
+(defalias
+  ;; Written on successful start / live-reload (enable watchdog proof).
+  bootproof (cmd /usr/bin/touch /tmp/sunghyun-kanata-boot-ok)
+
+  desk f13
+  caps5 caps
+  miss C-up
+
+  ;; Caps tap = maximize; hold = Hyper
+  tmax (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile maximize)
+  cap (tap-hold-press $tt $ht @tmax (layer-while-held hyper))
+
+  ;; ⌘ tap = IME; hold / chord = real ⌘ (tap-hold-press promotes hold on next key)
+  imeabc (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh input-source ABC)
+  imekor (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh input-source 2SetKorean)
+  lcmd (tap-hold-press $tt $ht @imeabc lmet)
+  rcmd (tap-hold-press $tt $ht @imekor rmet)
+
+  obrowser (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open-default-browser)
+  ocal (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open calendar)
+  okaz (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open kakaotalk)
+  olin (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open linear)
+  omai (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open mail)
+  omus (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open music)
+  osla (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open slack)
+
+  tleft (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile left)
+  tright (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile right)
+  ttop (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile top)
+  tbot (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile bottom)
+  tcen (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile center)
+  ttl (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile top-left)
+  tf1 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile first-fourth)
+  tf2 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile second-fourth)
+  tf3 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile third-fourth)
+  tf4 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile last-fourth)
+  tfull (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile fullscreen)
+
+  ;; ⌘⇧V → system Spotlight Clipboard Search (⌘Space then ⌘4), emitted as
+  ;; native virtual-HID keys. A CLI hop cannot work: macOS 26+ WindowServer
+  ;; drops CGEventPost-synthesized keys before the global hotkey matcher
+  ;; (verified live 2026-08-08); only HID-level events like kanata's own
+  ;; output reach Spotlight. Shift is released first so Spotlight sees a
+  ;; clean ⌘Space (physical ⌘ stays held, which the chord needs anyway).
+  spclipseq (macro M-spc 250 M-4)
+  spclip (multi (release-key lsft) (release-key rsft) @spclipseq)
+  vclip (fork v @spclip (lsft lmet rmet))
+)
+
+(deflayer base
+  @cap
+  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ @vclip _ _ _ _
+  _ _ _ _ _
+  _ _ _ _ _
+  @lcmd @rcmd
+  brdn brup _ _ prev pp next mute vold volu
+)
+
+(deflayer hyper
+  _
+  @imeabc @imekor @tcen @desk _ @miss _ @omai @olin @obrowser @omus @ocal @okaz @osla _ _ _ _ _ _ _ @ttl _ _ _ _
+  @tf1 @tf2 @tf3 @tf4 @caps5
+  @tleft @tright @ttop @tbot @tfull
+  _ _
+  XX XX XX XX XX XX XX XX XX XX
+)

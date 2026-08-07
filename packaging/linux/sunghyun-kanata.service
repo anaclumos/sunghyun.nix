@@ -1,0 +1,11 @@
+[Unit]
+Description=sunghyun Kanata remapper
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/kanata --cfg %h/.config/sunghyun/kanata.kbd
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,218 @@
+{
+  "global": {
+    "ask_for_confirmation_before_quitting": true,
+    "check_for_updates_on_startup": false,
+    "show_in_menu_bar": false,
+    "show_profile_name_in_menu_bar": false
+  },
+  "profiles": [
+    {
+      "name": "sunghyun",
+      "selected": true,
+      "virtual_hid_keyboard": { "keyboard_type_v2": "ansi" },
+      "complex_modifications": {
+        "parameters": {
+          "basic.to_if_alone_timeout_milliseconds": 200,
+          "basic.to_if_held_down_threshold_milliseconds": 200
+        },
+        "rules": [
+          {
+            "description": "Caps Lock tap = tile maximize; hold = Hyper (variable)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": { "key_code": "caps_lock", "modifiers": { "optional": ["any"] } },
+                "to": [{ "set_variable": { "name": "hyper", "value": 1 } }],
+                "to_after_key_up": [{ "set_variable": { "name": "hyper", "value": 0 } }],
+                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun tile maximize" }]
+              }
+            ]
+          },
+          {
+            "description": "Hyper arrows/Enter = tiling",
+            "manipulators": [
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "left_arrow", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile left" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "right_arrow", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile right" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "up_arrow", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "down_arrow", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile bottom" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "return_or_enter", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile fullscreen" }]
+              }
+            ]
+          },
+          {
+            "description": "Hyper 1-4 = fourth tiles; 5 = Caps Lock",
+            "manipulators": [
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "1", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile first-fourth" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "2", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile second-fourth" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "3", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile third-fourth" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "4", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile last-fourth" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "5", "modifiers": { "optional": ["any"] } },
+                "to": [{ "key_code": "caps_lock" }]
+              }
+            ]
+          },
+          {
+            "description": "Hyper letters: IME, tiles, desktop, Mission Control, app opens",
+            "manipulators": [
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "a", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun input-source ABC" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "b", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun input-source 2SetKorean" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "c", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile center" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "d", "modifiers": { "optional": ["any"] } },
+                "to": [{ "key_code": "f13" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "f", "modifiers": { "optional": ["any"] } },
+                "to": [{ "key_code": "up_arrow", "modifiers": ["left_control"] }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "h", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open mail" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "i", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open linear" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "j", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open-default-browser" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "k", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open music" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "l", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open calendar" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "m", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open kakaotalk" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "n", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open slack" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "v", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top-left" }]
+              }
+            ]
+          },
+          {
+            "description": "Cmd-Shift-V = Spotlight clipboard history (virtual ⌘Space then ⌘4; HID events need no TCC grant)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": { "key_code": "v", "modifiers": { "mandatory": ["command", "shift"] } },
+                "to": [
+                  { "key_code": "spacebar", "modifiers": ["left_command"], "hold_down_milliseconds": 100 },
+                  { "key_code": "4", "modifiers": ["left_command"] }
+                ]
+              }
+            ]
+          },
+          {
+            "description": "Left/Right Cmd tap = IME switch; hold = Cmd chords",
+            "manipulators": [
+              {
+                "type": "basic",
+                "from": { "key_code": "left_command", "modifiers": { "optional": ["any"] } },
+                "to": [{ "key_code": "left_command", "lazy": true }],
+                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun input-source ABC" }]
+              },
+              {
+                "type": "basic",
+                "from": { "key_code": "right_command", "modifiers": { "optional": ["any"] } },
+                "to": [{ "key_code": "right_command", "lazy": true }],
+                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun input-source 2SetKorean" }]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

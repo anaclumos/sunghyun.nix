@@ -1,0 +1,25 @@
+# Declarative extras mirrored for the CLI (nix owns the installs).
+# Brew formulae/casks live in assets/Brewfile (includes brew "mas").
+# Mac App Store apps: [[mas_apps]] (id + name); installed by the non-fatal
+# postActivation script in nix/darwin/modules/homebrew.nix.
+
+# Direct pkg asset (steps.rs downloads this when the DriverKit stack is absent).
+kanata_driver_url = "https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/download/v6.2.0/Karabiner-DriverKit-VirtualHIDDevice-6.2.0.pkg"
+
+[[mas_apps]]
+id = 497799835
+name = "Xcode"
+
+[[mas_apps]]
+id = 869223134
+name = "KakaoTalk"
+
+[[mas_apps]]
+id = 6756065687
+name = "What Watt?"
+
+[[mas_apps]]
+id = 937984704
+name = "Amphetamine"
+
+# skip = ["cua_driver"]
