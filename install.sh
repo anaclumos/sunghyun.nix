@@ -45,6 +45,41 @@ export GIT_TERMINAL_PROMPT=0
 # is false even in Terminal, and sudo reads from /dev/tty anyway.
 has_controlling_tty() { { : < /dev/tty; } 2>/dev/null; }
 
+# A cached sudo ticket cannot survive this run. Homebrew resets it on every
+# brew invocation, unconditionally and with no opt-out:
+#   Library/Homebrew/brew.sh
+#     # Reset sudo timestamp to avoid running unauthorized sudo commands
+#     "${SUDO}" --reset-timestamp
+# and brew runs here twice -- once from ensure_homebrew, once from the Brewfile
+# activation inside darwin-rebuild. A keep-alive loop cannot recover, because
+# re-minting a ticket needs the password again. So the single authorization the
+# owner gives is held in a sudoers drop-in for the length of the run and dropped
+# on the way out. A leaked grant from a SIGKILLed run is reclaimed by the next
+# run, which reinstalls and then releases the same path.
+SUDO_DROPIN="/etc/sudoers.d/zz-sunghyun-install"
+SUDO_GRANT_HELD=""
+
+sudo_grant_release() {
+  [[ -n "${SUDO_GRANT_HELD}" ]] || return 0
+  SUDO_GRANT_HELD=""
+  sudo rm -f "${SUDO_DROPIN}" 2>/dev/null || true
+  log "released the temporary sudo grant (${SUDO_DROPIN})"
+}
+
+sudo_grant_acquire() {
+  local tmp
+  tmp="$(mktemp)"
+  printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$(id -un)" >"${tmp}"
+  if sudo visudo -cqf "${tmp}" 2>/dev/null &&
+     sudo install -m 0440 -o root -g wheel "${tmp}" "${SUDO_DROPIN}"; then
+    SUDO_GRANT_HELD=1
+    log "holding a temporary sudo grant for this run (${SUDO_DROPIN}); released on exit"
+  else
+    log "WARNING: could not install ${SUDO_DROPIN}; sudo may ask again after a brew step"
+  fi
+  rm -f "${tmp}"
+}
+
 sudo_keepalive_start() {
   if sudo -n true 2>/dev/null; then
     :
@@ -54,6 +89,7 @@ sudo_keepalive_start() {
   else
     die "sudo needs a password once but there is no controlling terminal; run this from Terminal"
   fi
+  sudo_grant_acquire
   (
     while true; do
       sudo -n true 2>/dev/null || true
@@ -62,7 +98,7 @@ sudo_keepalive_start() {
     done
   ) &
   SUDO_KEEPALIVE_PID=$!
-  trap 'kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true' EXIT INT TERM
+  trap 'kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true; sudo_grant_release' EXIT INT TERM
 }
 
 # --- environment helpers ----------------------------------------------------
