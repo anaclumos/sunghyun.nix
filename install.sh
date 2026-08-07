@@ -35,6 +35,10 @@ export PATH="${HOME}/.local/bin:/nix/var/nix/profiles/default/bin:/run/current-s
 log() { printf 'sunghyun-install: %s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
+# The run is unattended after the single sudo password, so git must never stop
+# to ask for credentials on a repo it cannot read.
+export GIT_TERMINAL_PROMPT=0
+
 # --- sudo keep-alive (single password, then unattended) ---------------------
 # The password gate must test the controlling terminal, not stdin: under the
 # documented entry point (`curl ... | bash`) stdin is the curl pipe, so `-t 0`
@@ -134,7 +138,20 @@ ensure_repo() { clone_or_update "${REPO_URL}" "${REPO_DIR}"; }
 
 # The portable HM layer symlinks ~/.zsh* into this working copy (single
 # canonical dotfiles source; no managed second clone).
-ensure_configs() { clone_or_update "${CONFIGS_URL}" "${CONFIGS_DIR}"; }
+#
+# anaclumos/configs is private, so on a fresh Mac -- which has no GitHub
+# credentials until the owner signs in -- this clone legitimately cannot
+# succeed. Treat it like the other unauthenticated surfaces (mas / Apple ID):
+# skip, never block, converge on a later run. HM only pins out-of-store
+# symlinks into this path, so a missing clone degrades to dangling ~/.zsh*
+# instead of failing activation.
+ensure_configs() {
+  if clone_or_update "${CONFIGS_URL}" "${CONFIGS_DIR}"; then
+    return 0
+  fi
+  log "configs: ${CONFIGS_URL} unavailable (private repo, no credentials yet); skipping, converges on a later run"
+  return 0
+}
 
 # --- macOS steps --------------------------------------------------------------
 ensure_xcode_clt() {
