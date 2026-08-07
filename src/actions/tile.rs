@@ -16,6 +16,7 @@ pub enum TileAction {
     SecondFourth,
     ThirdFourth,
     LastFourth,
+    /// Right three quarters, flush to the right edge (Hyper+W).
     LastThreeFourths,
     /// Fill the visible desktop (not macOS native fullscreen).
     Maximize,
@@ -126,17 +127,11 @@ fn macos_tile(gap: i64, action: TileAction) -> ActionResult {
         }
     };
 
-    let screen = ax_api::main_display_bounds();
-    let g = gap as f64;
-    let x = screen.origin.x + screen.size.width * fx + g;
-    let y = screen.origin.y + screen.size.height * fy + g;
-    let w = screen.size.width * fw - g * 2.0;
-    let h = screen.size.height * fh - g * 2.0;
-    ax_api::set_focused_window_frame(x, y, w, h)
+    ax_api::tile_focused_window(fx, fy, fw, fh, gap as f64)
 }
 
-/// Thin FFI over ApplicationServices AXUIElement + CoreGraphics display
-/// bounds. Same style as ax.rs (hand-declared externs on the stable C API).
+/// Thin FFI over ApplicationServices AXUIElement + CoreGraphics/NSScreen
+/// geometry. Same style as ax.rs (hand-declared externs on the stable C API).
 #[cfg(target_os = "macos")]
 mod ax_api {
     use crate::error::{ActionError, ActionResult};
@@ -185,12 +180,19 @@ mod ax_api {
             value: CFTypeRef,
         ) -> AXError;
         fn AXValueCreate(the_type: u32, value_ptr: *const std::ffi::c_void) -> AXValueRef;
+        fn AXValueGetValue(
+            value: AXValueRef,
+            the_type: u32,
+            value_ptr: *mut std::ffi::c_void,
+        ) -> bool;
     }
 
     #[link(name = "CoreGraphics", kind = "framework")]
     extern "C" {
         fn CGMainDisplayID() -> u32;
         fn CGDisplayBounds(display: u32) -> CGRect;
+        fn CGRectContainsPoint(rect: CGRect, point: CGPoint) -> bool;
+        fn CGRectIntersection(a: CGRect, b: CGRect) -> CGRect;
     }
 
     // NSWorkspace lives in AppKit; the objc runtime resolves the rest.
@@ -205,6 +207,140 @@ mod ax_api {
 
     pub fn main_display_bounds() -> CGRect {
         unsafe { CGDisplayBounds(CGMainDisplayID()) }
+    }
+
+    /// A display's full bounds and its usable area (menu bar and Dock removed),
+    /// both in CoreGraphics global coordinates (top-left origin).
+    struct ScreenArea {
+        bounds: CGRect,
+        visible: CGRect,
+    }
+
+    /// NSRect is CGRect on 64-bit macOS, but a 32-byte struct return goes
+    /// through the hidden-pointer convention, which on x86_64 means a
+    /// different entry point than plain objc_msgSend.
+    #[cfg(not(target_arch = "aarch64"))]
+    #[link(name = "objc")]
+    extern "C" {
+        fn objc_msgSend_stret();
+    }
+
+    unsafe fn msg_rect(receiver: *mut std::ffi::c_void, sel: *mut std::ffi::c_void) -> CGRect {
+        #[cfg(target_arch = "aarch64")]
+        let entry = objc_msgSend as unsafe extern "C" fn();
+        #[cfg(not(target_arch = "aarch64"))]
+        let entry = objc_msgSend_stret as unsafe extern "C" fn();
+        let msg: unsafe extern "C" fn(
+            *mut std::ffi::c_void,
+            *mut std::ffi::c_void,
+        ) -> CGRect = std::mem::transmute(entry);
+        msg(receiver, sel)
+    }
+
+    /// Cocoa screen rects are bottom-left origin against the primary display;
+    /// AX window frames are top-left origin against the same display.
+    fn cocoa_to_cg(rect: CGRect, primary_height: f64) -> CGRect {
+        CGRect {
+            origin: CGPoint {
+                x: rect.origin.x,
+                y: primary_height - (rect.origin.y + rect.size.height),
+            },
+            size: rect.size,
+        }
+    }
+
+    fn screen_areas() -> Vec<ScreenArea> {
+        use std::ffi::c_void;
+        unsafe {
+            let cls = objc_getClass(c"NSScreen".as_ptr());
+            if cls.is_null() {
+                return Vec::new();
+            }
+            let msg_id: unsafe extern "C" fn(*mut c_void, *mut c_void) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            let screens = msg_id(cls, sel_registerName(c"screens".as_ptr()));
+            if screens.is_null() {
+                return Vec::new();
+            }
+            let msg_count: unsafe extern "C" fn(*mut c_void, *mut c_void) -> usize =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            let count = msg_count(screens, sel_registerName(c"count".as_ptr()));
+            if count == 0 {
+                return Vec::new();
+            }
+            let msg_at: unsafe extern "C" fn(*mut c_void, *mut c_void, usize) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            let at = sel_registerName(c"objectAtIndex:".as_ptr());
+            let frame = sel_registerName(c"frame".as_ptr());
+            let visible_frame = sel_registerName(c"visibleFrame".as_ptr());
+            // screens[0] is the display Cocoa anchors at (0,0); CoreGraphics
+            // anchors its global space at that same display's top-left.
+            let primary_height = msg_rect(msg_at(screens, at, 0), frame).size.height;
+            (0..count)
+                .filter_map(|i| {
+                    let screen = msg_at(screens, at, i);
+                    if screen.is_null() {
+                        return None;
+                    }
+                    Some(ScreenArea {
+                        bounds: cocoa_to_cg(msg_rect(screen, frame), primary_height),
+                        visible: cocoa_to_cg(msg_rect(screen, visible_frame), primary_height),
+                    })
+                })
+                .collect()
+        }
+    }
+
+    /// Usable area of the display the window sits on. Tiling fractions are
+    /// taken against this, so a window keeps to its own display and never
+    /// slides under the menu bar or the Dock.
+    fn visible_area_for(window: CGRect) -> CGRect {
+        let areas = screen_areas();
+        if areas.is_empty() {
+            return main_display_bounds();
+        }
+        let center = CGPoint {
+            x: window.origin.x + window.size.width / 2.0,
+            y: window.origin.y + window.size.height / 2.0,
+        };
+        if let Some(area) = areas
+            .iter()
+            .find(|a| unsafe { CGRectContainsPoint(a.bounds, center) })
+        {
+            return area.visible;
+        }
+        // Center off every display (window dragged partly off-screen): the
+        // display it overlaps most owns it.
+        areas
+            .iter()
+            .max_by(|a, b| overlap_area(a.bounds, window).total_cmp(&overlap_area(b.bounds, window)))
+            .map(|a| a.visible)
+            .unwrap_or_else(main_display_bounds)
+    }
+
+    fn overlap_area(a: CGRect, b: CGRect) -> f64 {
+        let i = unsafe { CGRectIntersection(a, b) };
+        if i.size.width.is_finite() && i.size.height.is_finite() {
+            i.size.width * i.size.height
+        } else {
+            0.0
+        }
+    }
+
+    /// Fractions of the usable area to an absolute frame, gap inset on each
+    /// edge. Pure geometry: same input always yields the same frame, so a
+    /// repeated press is a no-op.
+    pub fn placement(area: CGRect, fx: f64, fy: f64, fw: f64, fh: f64, gap: f64) -> CGRect {
+        CGRect {
+            origin: CGPoint {
+                x: area.origin.x + area.size.width * fx + gap,
+                y: area.origin.y + area.size.height * fy + gap,
+            },
+            size: CGSize {
+                width: area.size.width * fw - gap * 2.0,
+                height: area.size.height * fh - gap * 2.0,
+            },
+        }
     }
 
     fn ax_err(context: &str, code: AXError) -> ActionError {
@@ -315,22 +451,36 @@ mod ax_api {
         Ok(())
     }
 
-    pub fn set_focused_window_frame(x: f64, y: f64, w: f64, h: f64) -> ActionResult {
-        let (app, window) = focused_window()?;
-        if is_native_fullscreen(window) {
-            unsafe {
-                CFRelease(window);
-                CFRelease(app);
-            }
-            return Err(ActionError::skipped(
-                "focused window is native fullscreen; exit fullscreen (or use tile fullscreen) to tile",
-            ));
+    fn window_frame(window: AXUIElementRef) -> Result<CGRect, ActionError> {
+        let position = copy_attr(window, "AXPosition")?;
+        let mut origin = CGPoint { x: 0.0, y: 0.0 };
+        let read_origin = unsafe {
+            AXValueGetValue(position, K_AX_VALUE_CGPOINT, &mut origin as *mut _ as *mut _)
+        };
+        unsafe { CFRelease(position) };
+        if !read_origin {
+            return Err(ActionError::failed("AXPosition is not a CGPoint"));
         }
-        let point = CGPoint { x, y };
-        let size = CGSize { width: w, height: h };
+        let size_value = copy_attr(window, "AXSize")?;
+        let mut size = CGSize {
+            width: 0.0,
+            height: 0.0,
+        };
+        let read_size =
+            unsafe { AXValueGetValue(size_value, K_AX_VALUE_CGSIZE, &mut size as *mut _ as *mut _) };
+        unsafe { CFRelease(size_value) };
+        if !read_size {
+            return Err(ActionError::failed("AXSize is not a CGSize"));
+        }
+        Ok(CGRect { origin, size })
+    }
+
+    fn set_frame(window: AXUIElementRef, frame: CGRect) -> ActionResult {
+        let point = frame.origin;
+        let size = frame.size;
         // Position before and after size: apps clamp position to the current
         // size, so a grow-then-move (or move-then-grow) can land off-target.
-        let result = set_ax_value(
+        set_ax_value(
             window,
             "AXPosition",
             K_AX_VALUE_CGPOINT,
@@ -346,7 +496,20 @@ mod ax_api {
                 K_AX_VALUE_CGPOINT,
                 &point as *const _ as *const _,
             )
-        });
+        })
+    }
+
+    pub fn tile_focused_window(fx: f64, fy: f64, fw: f64, fh: f64, gap: f64) -> ActionResult {
+        let (app, window) = focused_window()?;
+        let result = (|| {
+            if is_native_fullscreen(window) {
+                return Err(ActionError::skipped(
+                    "focused window is native fullscreen; exit fullscreen (or use tile fullscreen) to tile",
+                ));
+            }
+            let area = visible_area_for(window_frame(window)?);
+            set_frame(window, placement(area, fx, fy, fw, fh, gap))
+        })();
         unsafe {
             CFRelease(window);
             CFRelease(app);
@@ -414,6 +577,44 @@ mod tests {
         let cfg = Config::default();
         let err = tile(&cfg, "left").unwrap_err();
         assert!(matches!(err, ActionError::Skipped(_)));
+    }
+
+    /// Visible area of the owner's built-in display, measured live 2026-08-08:
+    /// 1728x1117 panel, 33pt menu bar, auto-hidden Dock.
+    #[cfg(target_os = "macos")]
+    const VISIBLE: super::ax_api::CGRect = super::ax_api::CGRect {
+        origin: super::ax_api::CGPoint { x: 0.0, y: 33.0 },
+        size: super::ax_api::CGSize {
+            width: 1728.0,
+            height: 1084.0,
+        },
+    };
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn last_three_fourths_is_flush_right_and_idempotent() {
+        let (fx, fy, fw, fh) = (0.25, 0.0, 0.75, 1.0);
+        let placed = super::ax_api::placement(VISIBLE, fx, fy, fw, fh, 0.0);
+        assert_eq!(placed.origin.x, 432.0);
+        assert_eq!(placed.origin.y, 33.0);
+        assert_eq!(placed.size.width, 1296.0);
+        assert_eq!(placed.size.height, 1084.0);
+        assert_eq!(
+            placed.origin.x + placed.size.width,
+            VISIBLE.origin.x + VISIBLE.size.width
+        );
+        assert_eq!(placed.size.width, VISIBLE.size.width * 0.75);
+        let again = super::ax_api::placement(VISIBLE, fx, fy, fw, fh, 0.0);
+        assert_eq!(placed.origin.x, again.origin.x);
+        assert_eq!(placed.size.width, again.size.width);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tiles_stay_clear_of_the_menu_bar() {
+        let maximized = super::ax_api::placement(VISIBLE, 0.0, 0.0, 1.0, 1.0, 0.0);
+        assert_eq!(maximized.origin.y, 33.0);
+        assert_eq!(maximized.size.height, 1084.0);
     }
 
     #[test]

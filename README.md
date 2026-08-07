@@ -95,7 +95,7 @@ Pinned driver: [Karabiner-DriverKit-VirtualHIDDevice v6.2.0](https://github.com/
 ## Keyboard notes
 
 - Caps tap → tile maximize; Caps hold → Hyper.
-- Hyper arrows / 1-4 / Enter / W → tiling; Hyper+J → `open-default-browser`.
+- Hyper arrows / 1-4 / Enter → tiling; Hyper+W → right three quarters; Hyper+J → `open-default-browser`.
 - L⌘ tap → ABC; R⌘ tap → 2-Set Korean; hold → normal ⌘ chords (⌘C/V).
 - ⌘⇧V → Spotlight Clipboard History (virtual ⌘Space, ⌘4).
 - Delivered by Karabiner-Elements complex modifications (`assets/karabiner.json`, Home Manager-managed).

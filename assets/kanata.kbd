@@ -10,7 +10,8 @@
 ;;
 ;; Bindings:
 ;; - Caps tap = tile maximize; Caps hold = Hyper
-;; - Hyper arrows / 1-4 / Enter / W = tiling; Hyper+J = default browser
+;; - Hyper arrows / 1-4 / Enter = tiling; Hyper+W = right three quarters
+;; - Hyper+J = default browser
 ;; - L⌘ tap = ABC IME; R⌘ tap = 2-Set Korean; hold = normal ⌘ (⌘C/V chords)
 ;; - ⌘⇧V = Spotlight clipboard (⌘Space then ⌘4)
 ;; - Cmd-Space stays Apple Spotlight (not rebound here)
@@ -75,6 +76,7 @@
   tf2 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile second-fourth)
   tf3 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile third-fourth)
   tf4 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile last-fourth)
+  t34 (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile last-three-fourths)
   tfull (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile fullscreen)
 
   ;; ⌘⇧V → system Spotlight Clipboard Search (⌘Space then ⌘4), emitted as
@@ -99,7 +101,7 @@
 
 (deflayer hyper
   _
-  @imeabc @imekor @tcen @desk _ @miss _ @omai @olin @obrowser @omus @ocal @okaz @osla _ _ _ _ _ _ _ @ttl _ _ _ _
+  @imeabc @imekor @tcen @desk _ @miss _ @omai @olin @obrowser @omus @ocal @okaz @osla _ _ _ _ _ _ _ @ttl @t34 _ _ _
   @tf1 @tf2 @tf3 @tf4 @caps5
   @tleft @tright @ttop @tbot @tfull
   _ _

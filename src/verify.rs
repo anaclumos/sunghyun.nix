@@ -80,6 +80,7 @@ fn check_keyboard_engine() -> StepReport {
             let outcomes = [
                 ("caps tap = maximize", "tile maximize"),
                 ("hyper tiling", "tile left"),
+                ("hyper+w right three quarters", "tile last-three-fourths"),
                 ("hyper browser", "open-default-browser"),
                 ("cmd tap = IME", "input-source ABC"),
                 // ⌘⇧V sends virtual ⌘Space then ⌘4 (spacebar only appears in

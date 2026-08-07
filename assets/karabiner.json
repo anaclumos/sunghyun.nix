@@ -178,6 +178,12 @@
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "v", "modifiers": { "optional": ["any"] } },
                 "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top-left" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "w", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile last-three-fourths" }]
               }
             ]
           },
