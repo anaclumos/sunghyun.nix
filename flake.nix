@@ -56,21 +56,44 @@
         };
     in
     {
-      # Primary host (LocalHostName / ComputerName: auracomputer)
+      # Primary host: the ONLY config that names a machine.
       darwinConfigurations.auracomputer = mkHost "auracomputer" ./nix/darwin/hosts/auracomputer.nix;
 
-      # Standalone Home Manager for non-NixOS Linux hosts (Ubuntu servers).
-      # Portable layer only: no GUI, no darwin modules, headless-safe.
-      homeConfigurations."sc@linux" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        modules = [
-          ./nix/home/portable.nix
-          {
-            home.username = "sc";
-            home.homeDirectory = "/home/sc";
-          }
-        ];
-      };
+      # Fallback for every other Mac. Keeps the machine's own name; install.sh
+      # resolves to this whenever LocalHostName has no matching host file.
+      darwinConfigurations.default = mkHost "default" ./nix/darwin/hosts/default.nix;
+
+      # Standalone Home Manager for non-NixOS Linux hosts (Ubuntu servers,
+      # screenless devices). Portable layer only: no GUI, no darwin modules,
+      # headless-safe. One output per Linux system: the old single
+      # `sc@linux` hard-pinned x86_64-linux and simply could not activate on
+      # an aarch64 box. `sc@linux` stays as an x86_64 alias so older docs and
+      # muscle memory keep working; install.sh selects by `uname -m`.
+      homeConfigurations =
+        let
+          mkLinuxHome =
+            linuxSystem:
+            home-manager.lib.homeManagerConfiguration {
+              pkgs = import nixpkgs {
+                system = linuxSystem;
+                # cursor-cli (Cursor Agent) is unfree.
+                config.allowUnfree = true;
+              };
+              modules = [
+                ./nix/home/portable.nix
+                ./nix/home/linux.nix
+                {
+                  home.username = "sc";
+                  home.homeDirectory = "/home/sc";
+                }
+              ];
+            };
+        in
+        {
+          "sc@x86_64-linux" = mkLinuxHome "x86_64-linux";
+          "sc@aarch64-linux" = mkLinuxHome "aarch64-linux";
+          "sc@linux" = mkLinuxHome "x86_64-linux";
+        };
 
       packages.${system} = {
         default = self.darwinConfigurations.auracomputer.system;
@@ -90,7 +113,12 @@
       };
 
       # After Nix is installed: nix flake check
-      checks.${system}.darwin-eval = self.darwinConfigurations.auracomputer.system;
+      checks.${system} = {
+        darwin-eval = self.darwinConfigurations.auracomputer.system;
+        # The fallback config must keep evaluating: it is what every machine
+        # other than auracomputer activates.
+        darwin-eval-default = self.darwinConfigurations.default.system;
+      };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 

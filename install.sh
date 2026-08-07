@@ -11,8 +11,15 @@
 # next switch. Apple ID: assumed from Setup Assistant; if signed out, mas apps
 # skip.
 #
-# Linux (non-NixOS, e.g. Ubuntu servers): Determinate Nix + standalone Home
-# Manager (`.#sc@linux`, portable layer only). No GUI steps; headless-safe.
+# Cursor Agent (`cursor-agent`) ships with the switch: macOS through the
+# official `cursor-cli` Homebrew cask declared in the flake, Linux through
+# nixpkgs in the portable layer. Installing it is all the entry point can do —
+# it cannot sign in, because `agent login` is a browser OAuth flow and the only
+# alternative is a CURSOR_API_KEY, neither of which a script may invent.
+#
+# Linux (non-NixOS, e.g. Ubuntu servers, screenless devices): Determinate Nix +
+# standalone Home Manager (`.#sc@x86_64-linux` / `.#sc@aarch64-linux`, portable
+# layer only). No GUI steps; headless-safe.
 #
 # Keyboard engine (macOS): Karabiner-Elements (declarative karabiner.json via
 # Home Manager; cask via nix-darwin homebrew). Kanata is the opt-in
@@ -29,7 +36,12 @@ REPO_URL="${SUNGHYUN_REPO_URL:-https://github.com/anaclumos/sunghyun.nix.git}"
 REPO_DIR="${SUNGHYUN_DIR:-$HOME/Developer/sunghyun.nix}"
 CONFIGS_URL="${SUNGHYUN_CONFIGS_URL:-https://github.com/anaclumos/configs.git}"
 CONFIGS_DIR="${SUNGHYUN_CONFIGS_DIR:-$HOME/Developer/configs}"
-DEFAULT_HOST="${SUNGHYUN_HOST:-auracomputer}"
+# Fallback flake host for a machine this repo has no named config for. It must
+# stay `default`: `.#default` is the only darwin config that sets no
+# ComputerName/LocalHostName, so an unknown Mac keeps the identity Setup
+# Assistant gave it. Pointing this at a named host renames the machine (a VM
+# once collided with the real Mac on the LAN and became auracomputer-2.local).
+DEFAULT_HOST="${SUNGHYUN_HOST:-default}"
 export PATH="${HOME}/.local/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
 log() { printf 'sunghyun-install: %s\n' "$*" >&2; }
@@ -67,11 +79,13 @@ sudo_grant_release() {
 }
 
 sudo_grant_acquire() {
-  local tmp
+  local tmp root_group
   tmp="$(mktemp)"
+  # root's primary group is `wheel` on macOS and `root` on Debian/Ubuntu.
+  root_group="$(id -gn root 2>/dev/null || echo wheel)"
   printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$(id -un)" >"${tmp}"
   if sudo visudo -cqf "${tmp}" 2>/dev/null &&
-     sudo install -m 0440 -o root -g wheel "${tmp}" "${SUDO_DROPIN}"; then
+     sudo install -m 0440 -o root -g "${root_group}" "${tmp}" "${SUDO_DROPIN}"; then
     SUDO_GRANT_HELD=1
     log "holding a temporary sudo grant for this run (${SUDO_DROPIN}); released on exit"
   else
@@ -81,6 +95,13 @@ sudo_grant_acquire() {
 }
 
 sudo_keepalive_start() {
+  # Already root (common on a freshly provisioned Linux server): nothing to
+  # authenticate, nothing to keep alive, and no drop-in to leave behind.
+  if [[ "$(id -u)" -eq 0 ]]; then
+    log "running as root; no sudo authorization needed"
+    return 0
+  fi
+  command -v sudo >/dev/null 2>&1 || die "sudo is required (or run this as root)"
   if sudo -n true 2>/dev/null; then
     :
   elif has_controlling_tty; then
@@ -325,16 +346,40 @@ main_darwin() {
 }
 
 # --- Linux steps ----------------------------------------------------------------
+# There is exactly one output per Linux system, because a Home Manager
+# configuration is built for a fixed platform: the old single `sc@linux`
+# pinned x86_64-linux and could not activate on an aarch64 box at all.
+linux_home_config() {
+  case "$(uname -m)" in
+    aarch64 | arm64) printf 'sc@aarch64-linux\n' ;;
+    x86_64 | amd64) printf 'sc@x86_64-linux\n' ;;
+    *) die "unsupported Linux architecture: $(uname -m)" ;;
+  esac
+}
+
 main_linux() {
   command -v git >/dev/null 2>&1 || die "git is required on Linux (apt install git)"
+  # The Determinate installer needs root. Without this the install prompts for
+  # a password in the middle of the pipe, which is the one thing the one-shot
+  # entry point promises never to do.
+  sudo_keepalive_start
   ensure_nix
   ensure_repo
   ensure_configs
 
   export SUNGHYUN_HEADLESS=1
   cd "${REPO_DIR}"
-  log "home-manager switch --flake .#sc@linux (portable layer; no GUI surfaces)"
-  nix run home-manager/master -- switch --flake ".#sc@linux" -b hm-backup
+  local hm out
+  hm="$(linux_home_config)"
+  log "home-manager switch --flake .#${hm} (portable layer; no GUI surfaces)"
+  # Build the activation package from THIS flake so the pinned home-manager
+  # input is what runs. `nix run home-manager/master` fetched a floating
+  # upstream instead, so the activated generation could disagree with
+  # flake.lock. `-b hm-backup` is just this env var under the hood.
+  out="$(nix build --no-link --print-out-paths \
+    ".#homeConfigurations.\"${hm}\".activationPackage")" \
+    || die "home-manager activation package build failed for ${hm}"
+  HOME_MANAGER_BACKUP_EXT=hm-backup "${out}/activate"
   log "one-shot complete (Linux portable layer)"
 }
 
