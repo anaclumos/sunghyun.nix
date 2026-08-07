@@ -26,7 +26,17 @@ use std::process::ExitCode;
 )]
 struct Cli {
     /// Force headless-safe mode (also: SUNGHYUN_HEADLESS=1)
-    #[arg(long, global = true, env = "SUNGHYUN_HEADLESS")]
+    ///
+    /// clap's default bool parser only accepts "true"/"false", so the documented
+    /// SUNGHYUN_HEADLESS=1 made every invocation exit 2 before running. Boolish
+    /// accepts 1/yes/on/true, matching what headless::env_flag already honours.
+    #[arg(
+        long,
+        global = true,
+        env = "SUNGHYUN_HEADLESS",
+        action = clap::ArgAction::SetTrue,
+        value_parser = clap::builder::BoolishValueParser::new()
+    )]
     headless: bool,
 
     /// Path to sunghyun.toml
