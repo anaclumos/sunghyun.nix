@@ -10,7 +10,10 @@ Migration landed (2026-08-08): this is the canonical repo
 `anaclumos/sunghyun.nix` (public; replaces the deleted private
 `anaclumos/sunghyun-os`; binary renamed to `sunghyun`). Linux devices
 including screenless/headless ones are set up via the standalone
-`homeConfigurations."sc@linux"` output (portable layer only). Module hygiene
+`homeConfigurations."sc@x86_64-linux"` / `"sc@aarch64-linux"` outputs (portable
+layer only; `"sc@linux"` remains as an x86_64 alias, and `install.sh` picks by
+`uname -m`, because a Home Manager configuration is built for one fixed
+platform and the old single output could not activate on ARM). Module hygiene
 constraint stands: the user-layer Home Manager config
 (`nix/home/portable.nix`: dotfiles, hushlogin, future zsh/git/runtimes) must
 never import darwin-only options; darwin-specific system state
@@ -51,11 +54,15 @@ Engine evaluation (2026-08-07, per-outcome, no stack loyalty):
 | f | Spotlight: ⌘Space enabled; typing "terminal" launches Ghostty | symbolichotkeys id 64 patched imperatively (whole-dict `defaults write` would clobber other shortcuts — no safe Nix path); Terminal→Ghostty alias app via `sunghyun` | verify `check_spotlight`, `check_terminal_alias` |
 | g | Menu bar shows no date (Time Machine extra hidden; Cursor tray hidden) | nix-darwin `system.defaults.CustomUserPreferences` (systemuiserver); Cursor tray is app storage → `sunghyun` post-switch step | verify `check_menubar` |
 | h | `~/.hushlogin` present | Home Manager `home.file` | verify `check_hushlogin` |
-| i | Declared packages/apps present (nixpkgs + brews/casks + mas: Xcode, KakaoTalk, What Watt?, Amphetamine) | nix-darwin `homebrew.{brews,casks}` + `environment.systemPackages`; mas apps via non-fatal `postActivation` script (signed out ⇒ warn + skip, converge next switch) | `darwin-rebuild switch` succeeds; verify `check_apps` |
+| i | Declared packages/apps present (nixpkgs + brews/casks + mas: Xcode, KakaoTalk, What Watt?, Amphetamine) | nix-darwin `homebrew.{brews,casks}` + `environment.systemPackages`; mas apps via the convergence LaunchDaemon in row r, never from `brew bundle` (which hard-fails when the App Store is signed out) | `darwin-rebuild switch` succeeds; verify `check_apps` |
 | j | zsh/dotfiles/runtimes configured | HM owns the `~/.zsh*` symlink wiring (out-of-store links into `~/Developer/configs/zsh/`, the single canonical clone; install.sh ensures it); content stays owned by anaclumos/configs; HM must never generate rc content (`programs.zsh` off); runtimes via nixpkgs/brew | shell loads; `~/.zshrc` resolves into `~/Developer/configs` |
 | k | One-shot fresh-Mac bootstrap: single curl, sudo rarely (Touch ID via `security.pam.services.sudo_local`), zero babysitting | `install.sh` → Determinate Nix → `darwin-rebuild switch --flake` → `sunghyun post-switch` (opens Settings panes for one-time grants + polls) | fresh-machine run completes with ≤ the 3 known human toggles below |
 | m | Headless/VM runs degrade gracefully (skips are not failures) | `SUNGHYUN_HEADLESS=1` + Aqua-session detection everywhere | headless `verify` / `post-switch` exit 0 |
 | n | Everything idempotent and verifiable by outcome checks | `sunghyun verify` asserts outcomes, not implementation details | `sunghyun verify` exit 0 |
+| p | Cursor Agent CLI (`cursor-agent`) present after the one-shot run, on macOS and on screenless Linux alike | macOS: official `cursor-cli` Homebrew cask declared in `homebrew.casks` (vendor release channel, stays writable so `cursor-agent update` works). Linux: nixpkgs `cursor-cli` in `nix/home/linux.nix`. Installing is the whole outcome — signing in is not automatable, see below | verify `check_cursor_agent` |
+| q | A machine keeps its own identity. Only the config that names a machine renames it | `nix/darwin/hosts/auracomputer.nix` is the sole config setting ComputerName/LocalHostName/HostName; every other Mac activates `.#default` (`nix/darwin/hosts/default.nix`), which sets none of them, and `install.sh` falls back to `default` rather than to a named host | `scutil --get ComputerName` is unchanged by a switch on a machine with no named host file |
+| r | Mac App Store apps converge in the background after a later sign-in, without ever blocking or prompting; and inside a VM they skip by design | `launchd.daemons.masapps` (`com.anaclumos.masapps`): RunAtLoad + hourly StartInterval, logs to `/var/log/sunghyun-masapps.log`, boots itself out once every declared app is installed. Activation only writes the plist, so a switch is never slowed. Skips immediately under virtualization (row s); defers silently when no Apple Account is signed in; closes an App Store sign-in dialog and defers if one ever appears | `launchctl print system/com.anaclumos.masapps` after a switch; the log names skip/defer/converge with a reason |
+| s | Virtualization is detected once, and the App Store surface skips because of it, not because of a timeout | `sunghyun virt` (`src/virt.rs`) — `kern.hv_vmm_present=1` primary, `hw.model` starting `VirtualMac` as an independent second witness. It is the only implementation; the mas daemon shells out to it rather than re-deriving the check | `sunghyun virt` exits 0 in a guest and 1 on metal; verify reports a `virtualization` line |
 
 ## Known human surfaces (final policy, owner 2026-08-07)
 
@@ -72,6 +79,26 @@ agent-driven clicking (the earlier CUA-gate framework is superseded).
 
 **Apple ID**: assumed from Setup Assistant. If signed out, mas apps skip
 gracefully (never block, loop, or instruct) and converge on a later switch.
+
+**Virtualization** (owner, 2026-08-08): inside a VM the Mac App Store surface
+skips by design. A guest is never signed into a real Apple Account in an
+end-to-end demo, so `mas` reports a skip naming virtualization, App Store is
+never launched, and the convergence daemon retires immediately instead of
+retrying. The gate stops there on purpose: it covers what a VM can never
+satisfy, not merely what an unattended run cannot. TCC and dext panes stay on
+the open-window-and-poll path even in a guest, because a person at the guest's
+console can grant them, and a timed-out pane costs nothing but time — while a
+mas attempt leaves a modal sign-in sheet on screen and a background job wedged
+behind it.
+
+**Cursor Agent sign-in is not automatable.** The one-shot run installs
+`cursor-agent`; it cannot authenticate it. `agent login` is a browser OAuth
+flow, and the only alternative is a `CURSOR_API_KEY` from the Cursor dashboard
+(<https://cursor.com/docs/cli/reference/authentication>). Both are credentials
+a script must not invent, which puts them in the same class as the Apple ID and
+the private `anaclumos/configs` clone: install, then let the owner's existing
+session take over. There is therefore no unattended "Cursor Agent GUI
+continuation" step, and the superseded CUA gate framework is not coming back.
 
 Exactly three first-boot toggles remain, each in a window the system opens:
 

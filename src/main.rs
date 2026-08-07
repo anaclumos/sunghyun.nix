@@ -12,6 +12,7 @@ mod post_switch;
 mod spotlight;
 mod status;
 mod verify;
+mod virt;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use config::load_or_default;
@@ -89,6 +90,11 @@ enum Commands {
         #[command(subcommand)]
         cmd: KanataCmd,
     },
+    /// Report virtualization state; exit 0 inside a VM, 1 on bare metal
+    ///
+    /// Single source of truth for the VM gate: the mas convergence
+    /// LaunchDaemon calls this instead of re-implementing the sysctl probe.
+    Virt,
 }
 
 #[derive(Subcommand, Debug)]
@@ -337,6 +343,14 @@ fn main() -> ExitCode {
                 }
             }
         },
+        Commands::Virt => {
+            println!("{}", virt::describe());
+            if virt::detect().is_guest() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
+        }
     }
 }
 

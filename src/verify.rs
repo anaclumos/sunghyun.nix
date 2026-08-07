@@ -38,6 +38,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     });
 
     steps.push(check_binary_features());
+    steps.push(check_virtualization());
     steps.push(check_cursor_agent());
     steps.push(check_ime_mapping(&config));
     steps.push(check_apps(&config));
@@ -63,8 +64,14 @@ pub fn run(opts: &VerifyOpts) -> Report {
 fn check_binary_features() -> StepReport {
     StepReport::ok(
         "binary",
-        "features: open,input-source,tile,launcher,clipboard,verify,post-switch,kanata",
+        "features: open,input-source,tile,launcher,clipboard,verify,post-switch,kanata,virt",
     )
+}
+
+/// Informational, never a failure: names the machine class so a run's log
+/// shows why the App Store surface behaved the way it did.
+fn check_virtualization() -> StepReport {
+    StepReport::ok("virtualization", crate::virt::describe())
 }
 
 /// OUTCOMES.md row p: Cursor Agent CLI present. macOS installs it through the
