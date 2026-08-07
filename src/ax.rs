@@ -1,5 +1,4 @@
 use crate::headless;
-use std::collections::BTreeSet;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -81,68 +80,33 @@ impl TrustProbe {
     }
 }
 
-/// Direct grants only: the running binary and installed `sunghyun` copies,
-/// each probed with TCC responsibility disclaimed so inherited trust from the
-/// spawning chain (Terminal, Cursor, karabiner_console_user_server) never
-/// counts as a grant on the binary.
+/// The one binary allowed to be a TCC principal. Every disclaimed probe,
+/// register prompt, and re-exec targets this path, never `current_exe()`:
+/// probing PATH candidates or the running store path mints a fresh TCC.db
+/// row per code identity, which is exactly how the Accessibility pane grew
+/// five duplicate "sunghyun" rows across rebuilds (observed 2026-08-08).
+/// Falls back to the running executable on hosts without the stable copy
+/// (dev checkouts, Linux).
+pub fn canonical_binary() -> Option<PathBuf> {
+    let stable = Path::new("/usr/local/bin/sunghyun");
+    if stable.is_file() {
+        return Some(stable.to_path_buf());
+    }
+    env::current_exe().ok()
+}
+
+/// Direct grant only: the canonical binary probed with TCC responsibility
+/// disclaimed, so inherited trust from the spawning chain (Terminal, Cursor,
+/// karabiner_console_user_server) never counts as a grant on the binary.
 fn trust_probe() -> TrustProbe {
     let running = env::current_exe().ok();
-
-    let mut granted_copy = None;
-    if let Some(r) = running.as_deref() {
-        if path_reports_trusted(r) {
-            granted_copy = Some(r.to_path_buf());
-        }
-    }
-    if granted_copy.is_none() {
-        for path in candidate_binaries(running.as_deref()) {
-            if path_reports_trusted(&path) {
-                granted_copy = Some(path);
-                break;
-            }
-        }
-    }
+    let granted_copy = canonical_binary().filter(|p| path_reports_trusted(p));
 
     TrustProbe {
         trusted: granted_copy.is_some(),
         running,
         granted_copy,
     }
-}
-
-fn candidate_binaries(running: Option<&Path>) -> Vec<PathBuf> {
-    let mut out = BTreeSet::new();
-    if let Some(p) = running {
-        out.insert(canonicalize_loose(p));
-    }
-    for key in ["HOME", "CARGO_HOME"] {
-        if let Ok(home) = env::var(key) {
-            let base = PathBuf::from(home);
-            if key == "HOME" {
-                out.insert(canonicalize_loose(&base.join(".cargo/bin/sunghyun")));
-                out.insert(canonicalize_loose(&base.join(".local/bin/sunghyun")));
-            } else {
-                out.insert(canonicalize_loose(&base.join("bin/sunghyun")));
-            }
-        }
-    }
-    out.insert(canonicalize_loose(Path::new("/usr/local/bin/sunghyun")));
-    out.insert(canonicalize_loose(Path::new("/opt/homebrew/bin/sunghyun")));
-
-    if let Ok(path) = env::var("PATH") {
-        for dir in env::split_paths(&path) {
-            out.insert(canonicalize_loose(&dir.join("sunghyun")));
-        }
-    }
-
-    out.into_iter()
-        .filter(|p| p.is_file())
-        .filter(|p| {
-            running
-                .map(|r| canonicalize_loose(r) != *p)
-                .unwrap_or(true)
-        })
-        .collect()
 }
 
 fn canonicalize_loose(path: &Path) -> PathBuf {
@@ -170,7 +134,9 @@ pub fn reexec_disclaimed_exit_code() -> Option<i32> {
     if env::var_os(DISCLAIM_MARKER).is_some() {
         return None;
     }
-    let exe = env::current_exe().ok()?;
+    // Always re-exec the canonical binary so the AX call attributes to the
+    // one granted identity, even when invoked via a PATH/store-path copy.
+    let exe = canonical_binary()?;
     let args: Vec<std::ffi::OsString> = env::args_os().skip(1).collect();
     let arg_refs: Vec<&std::ffi::OsStr> = args.iter().map(|a| a.as_os_str()).collect();
     spawn_disclaimed(&exe, &arg_refs, DISCLAIM_MARKER)
@@ -346,11 +312,11 @@ fn wait_until_trusted() -> AxGateOutcome {
     );
     eprintln!("Opening Accessibility settings once (no Enter prompt)…");
     open_accessibility_settings();
-    // Register this binary's own TCC entry (OS prompt sheet once). Must run
-    // disclaimed: from an inherited-trusted context the in-process
+    // Register the canonical binary's own TCC entry (OS prompt sheet once).
+    // Must run disclaimed: from an inherited-trusted context the in-process
     // AXIsProcessTrustedWithOptions(prompt) returns true without ever listing
     // the binary in Settings, leaving the owner nothing to toggle.
-    if let Ok(exe) = env::current_exe() {
+    if let Some(exe) = canonical_binary() {
         let _ = spawn_disclaimed(&exe, &[], "SUNGHYUN_AX_REGISTER");
     }
     let _ = ax_trusted_with_options(true);

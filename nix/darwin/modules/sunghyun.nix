@@ -35,6 +35,36 @@ in
       echo "sunghyun: staging stable CLI copy at /usr/local/bin (TCC path stability)"
       mkdir -p /usr/local/bin
       install -m 755 ${package}/bin/sunghyun /usr/local/bin/sunghyun
+
+      # TCC pins a grant to the binary's designated requirement. An ad-hoc
+      # signature's DR is `cdhash H"..."`, so every rebuild minted a NEW
+      # Accessibility identity (five duplicate "sunghyun" rows in Settings,
+      # observed live 2026-08-08). Signing with a local self-signed cert
+      # shifts the DR to `identifier ... and certificate leaf = H"..."`,
+      # stable across rebuilds (the yabai/skhd pattern). The identity is
+      # created on first activation; `security find-identity` must run
+      # WITHOUT -v, which hides untrusted-but-usable self-signed certs.
+      if ! /usr/bin/security find-identity -p codesigning /Library/Keychains/System.keychain 2>/dev/null | grep -q '"sunghyun-codesign"'; then
+        echo "sunghyun: creating sunghyun-codesign identity in the System keychain"
+        certdir=$(mktemp -d)
+        /usr/bin/openssl req -x509 -newkey rsa:2048 \
+          -keyout "$certdir/key.pem" -out "$certdir/cert.pem" -days 3650 -nodes \
+          -subj "/CN=sunghyun-codesign" \
+          -addext "keyUsage=critical,digitalSignature" \
+          -addext "extendedKeyUsage=critical,codeSigning" \
+          -addext "basicConstraints=critical,CA:false"
+        /usr/bin/security import "$certdir/cert.pem" -k /Library/Keychains/System.keychain -T /usr/bin/codesign
+        /usr/bin/security import "$certdir/key.pem" -k /Library/Keychains/System.keychain -T /usr/bin/codesign
+        rm -Pf "$certdir/key.pem"
+        rm -f "$certdir/cert.pem"
+        rmdir "$certdir"
+      fi
+      if /usr/bin/codesign --force --sign sunghyun-codesign --identifier com.anaclumos.sunghyun /usr/local/bin/sunghyun 2>/dev/null; then
+        echo "sunghyun: signed with sunghyun-codesign (Accessibility grant survives rebuilds)"
+      else
+        echo "sunghyun: WARNING cert signing failed; ad-hoc signature (Accessibility resets on rebuild)"
+      fi
+
       # Migration (2026-08-08): binary renamed from sunghyun-os; remove every
       # stale copy so no orphan can shadow `sunghyun` via PATH order. The
       # user-dir copies came from historical `cargo install` runs and were
