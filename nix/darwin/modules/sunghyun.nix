@@ -55,7 +55,9 @@ in
           -addext "basicConstraints=critical,CA:false"
         /usr/bin/security import "$certdir/cert.pem" -k /Library/Keychains/System.keychain -T /usr/bin/codesign
         /usr/bin/security import "$certdir/key.pem" -k /Library/Keychains/System.keychain -T /usr/bin/codesign
-        rm -Pf "$certdir/key.pem"
+        # -P (overwrite before unlink) is BSD-only, and activation runs with the
+        # Nix system path ahead of /bin, where `rm` is GNU coreutils.
+        /bin/rm -Pf "$certdir/key.pem"
         rm -f "$certdir/cert.pem"
         rmdir "$certdir"
       fi
