@@ -190,16 +190,38 @@ ensure_xcode_clt() {
   done
 }
 
+# nix-darwin manages the Brewfile but never installs Homebrew: when brew is
+# missing its activation only prints "error: Homebrew is not installed,
+# skipping..." and continues, so a fresh Mac would silently come up without any
+# cask -- including karabiner-elements, the primary keyboard engine.
+ensure_homebrew() {
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    log "Homebrew already installed"
+    return 0
+  fi
+  log "installing Homebrew (NONINTERACTIVE=1; no RETURN prompt)"
+  # Official installer; NONINTERACTIVE=1 is its documented unattended mode.
+  if NONINTERACTIVE=1 /bin/bash -c \
+      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+    log "Homebrew installed"
+  else
+    log "WARNING: Homebrew install failed; every brew/cask outcome (incl. karabiner-elements) skips this run"
+  fi
+}
+
 darwin_rebuild_switch() {
   local host="$1"
   source_nix_daemon
   cd "${REPO_DIR}"
   log "darwin-rebuild switch --flake .#${host} (Kanata daemon OFF by flake default)"
+  # System activation must run as root; unprivileged it aborts with
+  # "system activation must now be run as root". The bootstrap form is the one
+  # upstream documents for a machine that has no darwin-rebuild in PATH yet.
   # Never pass an override that enables Kanata from this script.
   if command -v darwin-rebuild >/dev/null 2>&1; then
-    darwin-rebuild switch --flake ".#${host}"
+    sudo darwin-rebuild switch --flake ".#${host}"
   else
-    nix run nix-darwin -- switch --flake ".#${host}"
+    sudo "$(command -v nix)" run nix-darwin/master#darwin-rebuild -- switch --flake ".#${host}"
   fi
 }
 
@@ -252,6 +274,7 @@ main_darwin() {
   sudo_keepalive_start
   ensure_xcode_clt
   ensure_nix
+  ensure_homebrew
   ensure_repo
   ensure_configs
 
