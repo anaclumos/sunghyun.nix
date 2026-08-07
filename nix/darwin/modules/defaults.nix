@@ -12,6 +12,12 @@
   system.defaults = {
     NSGlobalDomain = {
       # Intentionally minimal. Add only keys verified on the live machine.
+      #
+      # OUTCOMES.md (o): Apple's media top row is the base state, so F1/F2/F3
+      # and F7-F12 fire brightness/Mission Control/media/volume bare and fn
+      # yields plain function keys. Karabiner then inverts only F4/F5/F6, which
+      # is 6 manipulators; the opposite base state would need 18.
+      "com.apple.keyboard.fnState" = false;
     };
     # OUTCOMES.md (g): menu bar shows no date. Int enum: 0=when space allows,
     # 1=always, 2=never.
