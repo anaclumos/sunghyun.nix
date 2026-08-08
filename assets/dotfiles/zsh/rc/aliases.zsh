@@ -11,3 +11,4 @@ cc() {
   claude --dangerously-skip-permissions "$@"
 }
 alias uncommit="git reset --soft HEAD~1"
+alias sentry-cli="echo 'Use \`sentry --help\`'"

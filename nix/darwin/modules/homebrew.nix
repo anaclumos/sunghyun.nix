@@ -28,16 +28,12 @@ let
 
     log() { printf '%s masapps: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
-    # `bootout` and not `disable`: a persisted override would also block the
-    # re-bootstrap, so a changed app list could never converge again.
     retire() {
       log "$1"
       /bin/launchctl bootout "system/$LABEL" 2>/dev/null || true
       exit 0
     }
 
-    # A guest may have no real Apple Account, and `mas install` would then open
-    # a sign-in dialog no one can answer: skip by design, never by timeout.
     VIRT="$(${sunghyun}/bin/sunghyun virt 2>&1)"
     if [ $? -eq 0 ]; then
       retire "skipped by design: $VIRT"
@@ -48,8 +44,6 @@ let
       exit 0
     fi
 
-    # mas needs root for `install` plus the primary user's Apple Account
-    # context: without SUDO_UID it exits with "Failed to get sudo uid".
     USER_NAME=${lib.escapeShellArg primaryUser}
     USER_UID="$(/usr/bin/id -u "$USER_NAME" 2>/dev/null || true)"
     USER_GID="$(/usr/bin/id -g "$USER_NAME" 2>/dev/null || true)"
@@ -68,18 +62,12 @@ let
       retire "converged: every declared App Store app is installed"
     fi
 
-    # `mas account` was removed upstream, so this plist is the only GUI-free
-    # signed-out probe: Setup Assistant sign-in materializes it.
     ACCOUNTS="/Users/$USER_NAME/Library/Preferences/MobileMeAccounts.plist"
     if ! /usr/libexec/PlistBuddy -c "Print :Accounts:0:AccountID" "$ACCOUNTS" >/dev/null 2>&1; then
       log "no Apple Account signed in yet; deferring$missing (retrying hourly, no dialog)"
       exit 0
     fi
 
-    # iCloud and Media & Purchases can be different accounts, and in that case
-    # `mas install` still blocks on a sign-in sheet forever. A normal install
-    # never launches App Store.app, so its appearance is that sheet. An App
-    # Store the owner opened themselves is left alone.
     appstore_was_open=0
     /usr/bin/pgrep -x "App Store" >/dev/null 2>&1 && appstore_was_open=1
 
@@ -121,11 +109,6 @@ let
   '';
 in
 {
-  # With cleanup = "uninstall", deleting the karabiner-elements line would make
-  # the next activation run its cask uninstall script, which purges the shared
-  # DriverKit VirtualHID files Karabiner-Elements and Kanata both need, and a
-  # machine with no virtual device output eats every key including the
-  # on-screen keyboard. Removing it must be a build failure, never a switch.
   assertions = [
     {
       assertion = lib.elem "karabiner-elements" (map (c: c.name) config.homebrew.casks);
@@ -133,37 +116,20 @@ in
     }
   ];
 
-  # The declared set, at the path verify reads. Not global.brewfile's env var:
-  # a shell opened before the switch would keep pointing at the previous
-  # generation's Brewfile, while /etc tracks the active generation.
   environment.etc."sunghyun/Brewfile".text = config.homebrew.brewfile;
 
   homebrew = {
     enable = true;
+    taps = [ "getsentry/tools" ];
     onActivation = {
-      # Owner 2026-08-08: machine upgrades go through `build` → flake update +
-      # switch, not topgrade. autoUpdate refreshes the brew index; upgrade lets
-      # brew bundle move declared formulae/casks forward during activation
-      # (mas apps are not in this Brewfile, so they stay on the LaunchDaemon path).
       autoUpdate = true;
       upgrade = true;
-      # Owner 2026-08-08: a definition deleted from this repo must be gone from
-      # the machine on the next switch. Not "zap": its deeper clean needs Full
-      # Disk Access for the process running brew, activation under sudo does
-      # not hold FDA, and a failed zap strands the cask half-uninstalled.
       cleanup = "uninstall";
-      # Homebrew 6.x prompts y/n by default, which would stall root activation.
       extraEnv = {
         HOMEBREW_NO_ASK = "1";
         HOMEBREW_NO_ENV_HINTS = "1";
       };
     };
-    # dotenvx is intentionally not here: it is only on the third-party
-    # dotenvx/brew tap (not homebrew-core), and on this macOS 27 host the
-    # prebuilt formula still fails Homebrew's Xcode minimum check while
-    # /Applications/Xcode.app is 26.6 (App Store still ships 26.6; CLT is
-    # already 27). Leaving it declared would fail `brew bundle` every
-    # switch. nixpkgs dotenvx lives in nix/home/portable.nix instead.
     brews = [
       "fnm"
       "gh"
@@ -172,6 +138,7 @@ in
       "mole"
       "pscale"
       "ripgrep"
+      "getsentry/tools/sentry"
       "stripe-cli"
       "tmux"
       "vercel"
@@ -183,36 +150,22 @@ in
       "codex"
       "codexbar"
       "cursor"
-      # Stays writable so `cursor-agent update` works, which a Nix store copy
-      # cannot do. Linux gets nixpkgs cursor-cli from nix/home/linux.nix.
       "cursor-cli"
+      "gcloud-cli"
       "ghostty"
       "iina"
       "itsycal"
-      # Cask, not nix-darwin services.karabiner-elements: that module is broken
-      # for KE >= 15 (nix-darwin#1041). NEVER `brew uninstall --cask
-      # karabiner-elements`; it deletes the DriverKit dext Kanata and KE share.
       "karabiner-elements"
       "linear"
       "macs-fan-control"
+      "obsidian"
       "orbstack"
       "slack"
-      # Standalone GUI variant (system Network Extension), so MagicDNS DNS
-      # config is native; the `tailscale` formula is the CLI-only tailscaled
-      # split that needs root launchd wiring. Token renamed from `tailscale`.
       "tailscale-app"
     ];
-    # No masApps here on purpose: `brew bundle` hard-fails activation when the
-    # App Store is signed out, so they converge from the daemon below instead.
   };
 
-  # A LaunchDaemon and not an activation child process: activation runs under
-  # sudo with use_pty, so a detached child dies with the pty teardown when
-  # activation returns (0-length log, no process).
   launchd.daemons.masapps = {
-    # `command` (not ProgramArguments) so nix-darwin wraps it in
-    # `/bin/wait4path /nix/store`: at boot the daemon can otherwise fire
-    # before the Nix store is mounted.
     command = "${masConverge}";
     serviceConfig = {
       Label = masLabel;

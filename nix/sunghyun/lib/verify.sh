@@ -177,21 +177,28 @@ check_orbstack() {
   fi
 }
 
-# OUTCOMES.md row as: dotenvx (nixpkgs), plus vercel/pscale/stripe from
-# Homebrew formulae (stripe-cli installs the `stripe` binary).
+# OUTCOMES.md rows as/at: bun/dotenvx/inngest/resend from nixpkgs (resend
+# built from the npm tarball by nix/pkgs/resend-cli.nix), vercel/pscale/
+# stripe/sentry/gcloud from Homebrew (stripe-cli installs the `stripe`
+# binary; the gcloud-cli cask links `gcloud`), mint as a bun global.
 check_dev_clis() {
   local found missing=""
-  if found="$(first_existing "/etc/profiles/per-user/$USER/bin/dotenvx" "$HOME/.nix-profile/bin/dotenvx")" ||
-    found="$(command -v dotenvx 2>/dev/null)"; then
-    :
-  else
-    missing="$missing dotenvx(nixpkgs)"
-  fi
+  local nixbin
+  for nixbin in bun dotenvx inngest resend; do
+    if found="$(first_existing "/etc/profiles/per-user/$USER/bin/$nixbin" "$HOME/.nix-profile/bin/$nixbin")" ||
+      found="$(command -v "$nixbin" 2>/dev/null)"; then
+      :
+    else
+      missing="$missing $nixbin(nixpkgs)"
+    fi
+  done
   local entry id binary package
   for entry in \
     "vercel|vercel|vercel" \
     "pscale|pscale|pscale" \
-    "stripe|stripe|stripe-cli"; do
+    "stripe|stripe|stripe-cli" \
+    "sentry|sentry|getsentry/tools/sentry" \
+    "gcloud|gcloud|gcloud-cli"; do
     id="${entry%%|*}"
     binary="${entry#*|}"
     package="${binary#*|}"
@@ -203,12 +210,18 @@ check_dev_clis() {
       missing="$missing $id($package)"
     fi
   done
+  if [ -x "$HOME/.bun/bin/mint" ] ||
+    found="$(command -v mint 2>/dev/null)"; then
+    :
+  else
+    missing="$missing mint(bun global)"
+  fi
   if [ -z "$missing" ]; then
-    step ok dev_clis "dotenvx vercel pscale stripe present"
+    step ok dev_clis "bun dotenvx inngest vercel pscale stripe sentry gcloud mint resend present"
   elif is_headless; then
     step skipped dev_clis "dev CLIs missing:$missing (headless; converges on the next switch)"
   else
-    step failed dev_clis "dev CLIs missing:$missing; nixpkgs dotenvx / homebrew.brews should have installed them"
+    step failed dev_clis "dev CLIs missing:$missing; nixpkgs / homebrew / bun globals should have installed them"
   fi
 }
 
