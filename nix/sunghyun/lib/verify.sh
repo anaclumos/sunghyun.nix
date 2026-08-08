@@ -16,7 +16,6 @@ cmd_verify() {
   check_coding_cli codex codex codex
   check_coding_cli claude claude claude-code
   check_tokenmaxxing
-  check_dia
   check_aside
   check_tailscale
   check_default_browser
@@ -94,17 +93,6 @@ check_tokenmaxxing() {
     step ok tokenmaxxing "tokenmaxxing present ($found)"
   else
     step failed tokenmaxxing "tokenmaxxing missing; the github:anaclumos/tokenmaxxing flake input should have installed it"
-  fi
-}
-
-# OUTCOMES.md row aa: Dia present, installed by the thebrowsercompany-dia cask.
-check_dia() {
-  if [ -d /Applications/Dia.app ]; then
-    step ok dia "/Applications/Dia.app present"
-  elif is_headless; then
-    step skipped dia "Dia absent (headless; the cask installs it on a GUI Mac)"
-  else
-    step failed dia "Dia missing; the thebrowsercompany-dia cask should have installed it"
   fi
 }
 
