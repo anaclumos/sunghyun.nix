@@ -13,6 +13,8 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    sunghyun-sans.url = "github:anaclumos/sunghyun-sans";
+    sunghyun-sans.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -75,11 +77,15 @@
               modules = [
                 ./nix/home/portable.nix
                 ./nix/home/linux.nix
+                ./nix/home/fonts.nix
                 {
                   home.username = "sc";
                   home.homeDirectory = "/home/sc";
                 }
               ];
+              extraSpecialArgs = {
+                inherit inputs;
+              };
             };
         in
         {

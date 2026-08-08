@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   nixpkgs.hostPlatform = "aarch64-darwin";
 
@@ -18,6 +18,8 @@
   programs.zsh.enable = true;
 
   environment.systemPackages = [ pkgs.tmux ];
+
+  fonts.packages = [ inputs.sunghyun-sans.packages.${pkgs.stdenv.hostPlatform.system}.default ];
 
   # `reattach` is what makes Touch ID work inside tmux, where privileged phases
   # run so one `sudo -v` covers the whole job.

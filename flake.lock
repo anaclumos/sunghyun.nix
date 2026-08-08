@@ -61,7 +61,28 @@
       "inputs": {
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "sunghyun-sans": "sunghyun-sans"
+      }
+    },
+    "sunghyun-sans": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785861354,
+        "narHash": "sha256-CoSBlNmQc6GGikPa79lecsgoH/K3U8bIhV16kZy9nsE=",
+        "owner": "anaclumos",
+        "repo": "sunghyun-sans",
+        "rev": "b73a1a149229380a59f6573a2bbee68fc96ddabe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anaclumos",
+        "repo": "sunghyun-sans",
+        "type": "github"
       }
     }
   },

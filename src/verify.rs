@@ -56,6 +56,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_menubar());
     steps.push(check_ax_permission(headless_mode));
     steps.push(check_input_monitoring());
+    steps.push(check_fonts());
 
     Report {
         headless: headless_mode,
@@ -533,6 +534,47 @@ fn check_input_monitoring() -> StepReport {
             "input_monitoring",
             "advisory: kanata installed but not running; Input Monitoring not probeable without FDA (safe-enable proves it)",
         )
+    }
+}
+
+/// OUTCOMES.md row v: Sunghyun Sans is visible in the OS font path. macOS
+/// materializes nix-darwin `fonts.packages` under /Library/Fonts/Nix Fonts;
+/// Linux exposes Home Manager fonts through the profile's share/fonts.
+fn check_fonts() -> StepReport {
+    fn find_family(dir: &std::path::Path) -> Option<std::path::PathBuf> {
+        for entry in std::fs::read_dir(dir).ok()?.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if let Some(found) = find_family(&path) {
+                    return Some(found);
+                }
+            } else if path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("SunghyunSans"))
+            {
+                return Some(path);
+            }
+        }
+        None
+    }
+    let mut roots = vec![std::path::PathBuf::from("/Library/Fonts/Nix Fonts")];
+    if let Some(user_dirs) = directories::UserDirs::new() {
+        roots.push(user_dirs.home_dir().join(".nix-profile/share/fonts"));
+    }
+    match roots.iter().find_map(|r| find_family(r)) {
+        Some(path) => StepReport::ok(
+            "fonts",
+            format!("Sunghyun Sans installed ({})", path.display()),
+        ),
+        None if headless::is_headless() => StepReport::skipped(
+            "fonts",
+            "Sunghyun Sans not found yet (headless; the next switch installs it)",
+        ),
+        None => StepReport::failed(
+            "fonts",
+            "Sunghyun Sans missing from /Library/Fonts/Nix Fonts and ~/.nix-profile/share/fonts; darwin-rebuild/home-manager switch installs it",
+        ),
     }
 }
 
