@@ -163,6 +163,10 @@ in
       "karabiner-elements"
       "linear"
       "slack"
+      # Standalone GUI variant (system Network Extension), so MagicDNS DNS
+      # config is native; the `tailscale` formula is the CLI-only tailscaled
+      # split that needs root launchd wiring. Token renamed from `tailscale`.
+      "tailscale-app"
       # Dia. Official homebrew/cask token, so no tap trust grant is in play and
       # an untrusted tap cannot abort the bundle run on a fresh machine.
       "thebrowsercompany-dia"

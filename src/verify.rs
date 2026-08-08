@@ -43,6 +43,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_coding_cli("codex", "codex", "codex"));
     steps.push(check_coding_cli("claude", "claude", "claude-code"));
     steps.push(check_dia());
+    steps.push(check_tailscale());
     steps.push(check_default_browser());
     steps.push(check_dock());
     steps.push(check_desktop_icons());
@@ -232,6 +233,31 @@ fn check_dia() -> StepReport {
         StepReport::failed(
             "dia",
             "Dia missing; the thebrowsercompany-dia cask should have installed it",
+        )
+    }
+}
+
+/// OUTCOMES.md row ag: Tailscale present so tailnet MagicDNS names can
+/// resolve after the owner signs in. The standalone app bundles daemon, GUI
+/// and CLI in one binary, so the app bundle is the whole install surface.
+fn check_tailscale() -> StepReport {
+    if cfg!(not(target_os = "macos")) {
+        return StepReport::skipped(
+            "tailscale",
+            "Tailscale is declared on macOS only (tailscaled is a system service the rootless Linux home layer cannot run)",
+        );
+    }
+    if std::path::Path::new("/Applications/Tailscale.app").exists() {
+        StepReport::ok("tailscale", "/Applications/Tailscale.app present")
+    } else if headless::is_headless() {
+        StepReport::skipped(
+            "tailscale",
+            "Tailscale absent (headless; the cask installs it on a GUI Mac)",
+        )
+    } else {
+        StepReport::failed(
+            "tailscale",
+            "Tailscale missing; the tailscale-app cask should have installed it",
         )
     }
 }
