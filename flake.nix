@@ -15,6 +15,8 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     sunghyun-sans.url = "github:anaclumos/sunghyun-sans";
     sunghyun-sans.inputs.nixpkgs.follows = "nixpkgs";
+    tokenmaxxing.url = "github:anaclumos/tokenmaxxing";
+    tokenmaxxing.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -44,6 +46,8 @@
             ./nix/darwin/modules/defaults.nix
             ./nix/darwin/modules/hotkeys.nix
             ./nix/darwin/modules/sunghyun.nix
+            inputs.tokenmaxxing.darwinModules.withOverlay
+            { programs.tokenmaxxing.enable = true; }
             hostModule
             home-manager.darwinModules.home-manager
             {

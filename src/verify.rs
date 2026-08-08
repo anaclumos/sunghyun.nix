@@ -42,6 +42,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_cursor_agent());
     steps.push(check_coding_cli("codex", "codex", "codex"));
     steps.push(check_coding_cli("claude", "claude", "claude-code"));
+    steps.push(check_tokenmaxxing());
     steps.push(check_dia());
     steps.push(check_tailscale());
     steps.push(check_default_browser());
@@ -169,6 +170,36 @@ fn check_coding_cli(id: &'static str, binary: &str, package: &str) -> StepReport
         None => StepReport::failed(
             id,
             format!("{binary} missing; the {package} cask (macOS) / nixpkgs {package} (Linux) should have installed it"),
+        ),
+    }
+}
+
+/// OUTCOMES.md row ah: tokenmaxxing present. Both platforms install it from
+/// the `github:anaclumos/tokenmaxxing` flake input (nix-darwin systemPackages
+/// on macOS, Home Manager `home.packages` on Linux), never Homebrew, so the
+/// Nix profile dirs plus PATH are the only probes.
+fn check_tokenmaxxing() -> StepReport {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let found = [
+        "/run/current-system/sw/bin/tokenmaxxing".to_string(),
+        format!("{home}/.nix-profile/bin/tokenmaxxing"),
+    ]
+    .into_iter()
+    .find(|p| std::path::Path::new(p).exists())
+    .or_else(|| {
+        Command::new("sh")
+            .args(["-c", "command -v tokenmaxxing 2>/dev/null"])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .filter(|s| !s.is_empty())
+    });
+    match found {
+        Some(path) => StepReport::ok("tokenmaxxing", format!("tokenmaxxing present ({path})")),
+        None => StepReport::failed(
+            "tokenmaxxing",
+            "tokenmaxxing missing; the github:anaclumos/tokenmaxxing flake input should have installed it",
         ),
     }
 }
