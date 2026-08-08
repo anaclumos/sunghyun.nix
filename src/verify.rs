@@ -46,6 +46,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_tailscale());
     steps.push(check_default_browser());
     steps.push(check_dock());
+    steps.push(check_finder_bars());
     steps.push(check_desktop_icons());
     steps.push(check_locale_units());
     steps.push(check_kakaotalk_language());
@@ -283,28 +284,61 @@ fn check_default_browser() -> StepReport {
     }
 }
 
-/// OUTCOMES.md row ac: the Dock holds nothing but its permanent fixtures.
-/// Finder and the Trash are not preferences and cannot be removed.
+/// OUTCOMES.md row ac: the Dock holds Finder, the Downloads folder tile and
+/// the Trash, nothing else. Finder and the Trash are not preferences and
+/// cannot be removed.
 fn check_dock() -> StepReport {
     if cfg!(not(target_os = "macos")) || headless::is_headless() {
         return StepReport::skipped("dock", "Dock state needs a GUI macOS session");
     }
-    let pinned = |key: &str| {
-        defaults_read(&["com.apple.dock", key])
-            .map(|t| t.matches("tile-data").count())
-            .unwrap_or(0)
-    };
-    let apps = pinned("persistent-apps");
-    let others = pinned("persistent-others");
+    let apps = defaults_read(&["com.apple.dock", "persistent-apps"])
+        .map(|t| t.matches("tile-data").count())
+        .unwrap_or(0);
+    let others = defaults_read(&["com.apple.dock", "persistent-others"]);
+    let other_tiles = others
+        .as_deref()
+        .map(|t| t.matches("tile-data").count())
+        .unwrap_or(0);
+    let downloads = others
+        .as_deref()
+        .map(|t| t.contains("/Downloads"))
+        .unwrap_or(false);
     let recents = defaults_read(&["com.apple.dock", "show-recents"])
         .map(|t| t == "0")
         .unwrap_or(false);
-    if apps == 0 && others == 0 && recents {
-        StepReport::ok("dock", "Dock empty except Finder and the Trash")
+    if apps == 0 && other_tiles == 1 && downloads && recents {
+        StepReport::ok(
+            "dock",
+            "Dock holds only the Downloads folder beside Finder and the Trash",
+        )
     } else {
         StepReport::failed(
             "dock",
-            format!("Dock still pinned: {apps} apps, {others} others, show-recents off={recents}"),
+            format!(
+                "Dock pinned: {apps} apps, {other_tiles} others, Downloads={downloads}, show-recents off={recents}"
+            ),
+        )
+    }
+}
+
+/// OUTCOMES.md row ah: Finder windows show the path bar and the status bar.
+fn check_finder_bars() -> StepReport {
+    if cfg!(not(target_os = "macos")) || headless::is_headless() {
+        return StepReport::skipped("finder_bars", "Finder windows need a GUI macOS session");
+    }
+    let flag = |key: &str| {
+        defaults_read(&["com.apple.finder", key])
+            .map(|t| t == "1")
+            .unwrap_or(false)
+    };
+    let pathbar = flag("ShowPathbar");
+    let statusbar = flag("ShowStatusBar");
+    if pathbar && statusbar {
+        StepReport::ok("finder_bars", "path bar and status bar shown")
+    } else {
+        StepReport::failed(
+            "finder_bars",
+            format!("ShowPathbar={pathbar}, ShowStatusBar={statusbar}"),
         )
     }
 }

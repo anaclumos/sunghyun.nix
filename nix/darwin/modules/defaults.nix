@@ -10,6 +10,7 @@ let
   # need a manipulator for every other key in the row.
   standardFunctionKeys = false;
   primaryUser = config.system.primaryUser;
+  home = config.users.users.${primaryUser}.home;
 
   # Item info and label position live inside
   # com.apple.finder → DesktopViewSettings → IconViewSettings, and `defaults
@@ -98,13 +99,15 @@ in
     # 0 = when space allows, 1 = always, 2 = never.
     menuExtraClock.ShowDate = 2;
     finder.ShowHardDrivesOnDesktop = true;
+    finder.ShowPathbar = true;
+    finder.ShowStatusBar = true;
     # `[ ]` and not the default `null`: nix-darwin filters null options out of
     # the `defaults write` list, so null means unmanaged while an empty list is
     # written as an empty array. Finder and the Trash are Dock fixtures rather
-    # than preferences, so an empty Dock still shows both.
+    # than preferences, so they stay either way.
     dock = {
       persistent-apps = [ ];
-      persistent-others = [ ];
+      persistent-others = [ { folder = "${home}/Downloads"; } ];
       show-recents = false;
     };
     CustomUserPreferences = {
