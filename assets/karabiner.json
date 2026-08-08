@@ -218,7 +218,7 @@
             ]
           },
           {
-            "description": "Top row: F4/F6 are plain function keys and F5 is Control-M, fn inverts them to Spotlight/dictation/Do Not Disturb",
+            "description": "Top row exceptions: bare F4 is a plain F4 and bare F5 is Control-M, fn inverts both (Spotlight, dictation). Every other key, F6 included, is left to Apple's media base state",
             "manipulators": [
               {
                 "type": "basic",
@@ -273,33 +273,6 @@
                   "modifiers": { "optional": ["caps_lock", "command", "control", "option", "shift"] }
                 },
                 "to": [{ "key_code": "m", "modifiers": ["left_control"] }]
-              },
-              {
-                "type": "basic",
-                "conditions": [
-                  {
-                    "type": "variable_unless",
-                    "name": "system.use_fkeys_as_standard_function_keys",
-                    "value": true
-                  }
-                ],
-                "from": { "key_code": "f6", "modifiers": { "mandatory": ["fn"], "optional": ["any"] } },
-                "to": [{ "generic_desktop": "do_not_disturb", "modifiers": ["fn"] }]
-              },
-              {
-                "type": "basic",
-                "conditions": [
-                  {
-                    "type": "variable_unless",
-                    "name": "system.use_fkeys_as_standard_function_keys",
-                    "value": true
-                  }
-                ],
-                "from": {
-                  "key_code": "f6",
-                  "modifiers": { "optional": ["caps_lock", "command", "control", "option", "shift"] }
-                },
-                "to": [{ "key_code": "f6", "modifiers": ["fn"] }]
               }
             ]
           }
