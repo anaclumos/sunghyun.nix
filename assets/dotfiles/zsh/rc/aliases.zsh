@@ -7,4 +7,7 @@ alias x="exit"
 alias c="cursor"
 alias "c."="cursor ."
 alias z='cursor "$HOME/Developer/sunghyun.nix"'
+cc() {
+  claude --dangerously-skip-permissions "$@"
+}
 alias uncommit="git reset --soft HEAD~1"
