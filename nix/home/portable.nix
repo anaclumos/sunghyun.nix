@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 let
   zsh = ../../assets/dotfiles/zsh;
 in
@@ -12,17 +12,6 @@ in
     pkgs.inngest
     (pkgs.callPackage ../pkgs/resend-cli.nix { })
   ];
-
-  home.activation.mintGlobal = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if [ ! -x "$HOME/.bun/bin/mint" ]; then
-      bun="$HOME/.bun/bin/bun"
-      [ -x "$bun" ] || bun="/etc/profiles/per-user/$USER/bin/bun"
-      [ -x "$bun" ] || bun="$HOME/.nix-profile/bin/bun"
-      if [ -x "$bun" ]; then
-        run "$bun" add --global mint
-      fi
-    fi
-  '';
 
   home.file.".hushlogin".text = "";
 

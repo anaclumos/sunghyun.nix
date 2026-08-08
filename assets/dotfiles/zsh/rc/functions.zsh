@@ -180,16 +180,11 @@ _build_nix_switch() {
     Darwin)
       host="$(_build_flake_host "$repo_dir")" || return 1
       if ! command -v darwin-rebuild >/dev/null 2>&1; then
-        print -u2 "build: darwin-rebuild not on PATH; run install.sh once or open a login shell after a prior switch"
+        print -u2 "build: darwin-rebuild not on PATH; bootstrap via the README first or open a login shell after a prior switch"
         return 1
       fi
       _build_run_step "$dry_run" "darwin-rebuild switch --flake .#${host}" \
         sudo darwin-rebuild switch --flake "${repo_dir}#${host}" || return 1
-      if (( ! dry_run )) && command -v sunghyun >/dev/null 2>&1; then
-        _build_run_step 0 "sunghyun karabiner health" sunghyun karabiner health || return 1
-      elif (( dry_run )); then
-        _build_run_step 1 "sunghyun karabiner health" sunghyun karabiner health
-      fi
       ;;
     Linux)
       hm="$(_build_linux_home_attr)" || return 1
