@@ -9,6 +9,10 @@ korean_2set = "com.apple.inputmethod.Korean.2SetKorean"
 bundle_id = "com.apple.iCal"
 name = "Calendar"
 
+[apps.iina]
+bundle_id = "com.colliderli.iina"
+name = "IINA"
+
 [apps.kakaotalk]
 bundle_id = "com.kakao.KakaoTalkMac"
 name = "KakaoTalk"
@@ -24,6 +28,10 @@ name = "Mail"
 [apps.music]
 bundle_id = "com.apple.Music"
 name = "Music"
+
+[apps.preview]
+bundle_id = "com.apple.Preview"
+name = "Preview"
 
 [apps.slack]
 bundle_id = "com.tinyspeck.slackmacgap"

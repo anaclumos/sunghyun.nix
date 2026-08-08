@@ -42,6 +42,7 @@
             ./nix/darwin/modules/homebrew.nix
             ./nix/darwin/modules/kanata.nix
             ./nix/darwin/modules/defaults.nix
+            ./nix/darwin/modules/hotkeys.nix
             ./nix/darwin/modules/sunghyun.nix
             hostModule
             home-manager.darwinModules.home-manager
@@ -71,7 +72,7 @@
             home-manager.lib.homeManagerConfiguration {
               pkgs = import nixpkgs {
                 system = linuxSystem;
-                # cursor-cli is unfree.
+                # cursor-cli and claude-code are unfree.
                 config.allowUnfree = true;
               };
               modules = [

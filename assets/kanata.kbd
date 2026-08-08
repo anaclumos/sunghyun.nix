@@ -11,7 +11,8 @@
 ;; Bindings:
 ;; - Caps tap = tile maximize; Caps hold = Hyper
 ;; - Hyper arrows / 1-4 / Enter = tiling; Hyper+W = right three quarters
-;; - Hyper+J = default browser
+;; - Hyper+J = default browser; Hyper+I/N/P/R = IINA/Slack/Preview/Linear
+;; - Hyper+grave = toggle system dark mode
 ;; - L⌘ tap = ABC IME; R⌘ tap = 2-Set Korean; hold = normal ⌘ (⌘C/V chords)
 ;; - ⌘⇧V = Spotlight clipboard (⌘Space then ⌘4)
 ;; - Cmd-Space stays Apple Spotlight (not rebound here)
@@ -33,6 +34,7 @@
   left right up down ret
   lmet rmet
   f1 f2 f3 f6 f7 f8 f9 f10 f11 f12
+  grv
 )
 
 (defvar
@@ -60,11 +62,15 @@
 
   obrowser (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open-default-browser)
   ocal (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open calendar)
+  oiina (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open iina)
   okaz (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open kakaotalk)
   olin (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open linear)
   omai (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open mail)
   omus (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open music)
+  oprv (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open preview)
   osla (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh open slack)
+
+  dark (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh toggle-dark-mode)
 
   tleft (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile left)
   tright (cmd HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh tile right)
@@ -97,13 +103,15 @@
   _ _ _ _ _
   @lcmd @rcmd
   brdn brup _ _ prev pp next mute vold volu
+  _
 )
 
 (deflayer hyper
   _
-  @imeabc @imekor @tcen @desk _ @miss _ @omai @olin @obrowser @omus @ocal @okaz @osla _ _ _ _ _ _ _ @ttl @t34 _ _ _
+  @imeabc @imekor @tcen @desk _ @miss _ @omai @oiina @obrowser @omus @ocal @okaz @osla _ @oprv _ @olin _ _ _ @ttl @t34 _ _ _
   @tf1 @tf2 @tf3 @tf4 @caps5
   @tleft @tright @ttop @tbot @tfull
   _ _
   XX XX XX XX XX XX XX XX XX XX
+  @dark
 )

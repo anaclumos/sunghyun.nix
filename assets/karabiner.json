@@ -99,7 +99,7 @@
             ]
           },
           {
-            "description": "Hyper letters: IME, tiles, desktop, Mission Control, app opens",
+            "description": "Hyper letters: IME, tiles, desktop, Mission Control, app opens; Hyper+grave = dark mode",
             "manipulators": [
               {
                 "type": "basic",
@@ -141,7 +141,7 @@
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "i", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open linear" }]
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open iina" }]
               },
               {
                 "type": "basic",
@@ -176,6 +176,18 @@
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "p", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open preview" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "r", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun open linear" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "v", "modifiers": { "optional": ["any"] } },
                 "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top-left" }]
               },
@@ -184,6 +196,12 @@
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "w", "modifiers": { "optional": ["any"] } },
                 "to": [{ "shell_command": "/usr/local/bin/sunghyun tile last-three-fourths" }]
+              },
+              {
+                "type": "basic",
+                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "from": { "key_code": "grave_accent_and_tilde", "modifiers": { "optional": ["any"] } },
+                "to": [{ "shell_command": "/usr/local/bin/sunghyun toggle-dark-mode" }]
               }
             ]
           },

@@ -7,6 +7,7 @@ mod dispatch;
 mod error;
 mod fn_state;
 mod headless;
+mod hotkeys;
 mod kanata_ctl;
 mod menubar;
 mod post_switch;
@@ -51,6 +52,8 @@ enum Commands {
     Open { target: String },
     /// Activate the OS default web browser (Hyper+J)
     OpenDefaultBrowser,
+    /// Flip the system appearance between light and dark (Hyper+`)
+    ToggleDarkMode,
     /// Switch input source (ABC / 2SetKorean / raw TIS id)
     InputSource { name: String },
     /// Tile the focused window
@@ -90,6 +93,14 @@ enum Commands {
         #[command(subcommand)]
         cmd: FnStateCmd,
     },
+    /// Chords reserved for apps: free them from the macOS system shortcuts
+    ///
+    /// The preference domain is only read at login, so this also asks the
+    /// running window server to drop the binding.
+    Hotkeys {
+        #[command(subcommand)]
+        cmd: HotkeysCmd,
+    },
     /// Kanata LaunchDaemon control (enable only via `--safe` passthrough proof + rollback)
     Kanata {
         #[command(subcommand)]
@@ -116,6 +127,14 @@ enum FnStateCmd {
         )]
         standard_function_keys: bool,
     },
+}
+
+#[derive(Subcommand, Debug)]
+enum HotkeysCmd {
+    /// Print the system shortcuts currently sitting on a reserved chord
+    Status,
+    /// Disable them, now and at the next login
+    Apply,
 }
 
 #[derive(Subcommand, Debug)]
@@ -200,6 +219,9 @@ fn main() -> ExitCode {
         Commands::OpenDefaultBrowser => action_exit(cli.config.as_deref(), |_cfg| {
             actions::open::open_default_browser()
         }),
+        Commands::ToggleDarkMode => {
+            action_exit(cli.config.as_deref(), |_cfg| actions::appearance::toggle())
+        }
         Commands::InputSource { name } => action_exit(cli.config.as_deref(), |cfg| {
             actions::input_source::switch(cfg, &name)
         }),
@@ -355,6 +377,42 @@ fn main() -> ExitCode {
                     println!("standard_function_keys={standard_function_keys}");
                     ExitCode::SUCCESS
                 }
+                Err(error::ActionError::Skipped(m)) => {
+                    eprintln!("skipped: {m}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    ExitCode::FAILURE
+                }
+            },
+        },
+        Commands::Hotkeys { cmd } => match cmd {
+            HotkeysCmd::Status => match hotkeys::claimants() {
+                Ok(found) => {
+                    if found.is_empty() {
+                        println!("no system shortcut claims a reserved chord");
+                    }
+                    for c in found {
+                        println!(
+                            "{} enabled={}",
+                            c.describe(),
+                            c.enabled
+                        );
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(error::ActionError::Skipped(m)) => {
+                    eprintln!("skipped: {m}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    ExitCode::FAILURE
+                }
+            },
+            HotkeysCmd::Apply => match hotkeys::apply() {
+                Ok(()) => ExitCode::SUCCESS,
                 Err(error::ActionError::Skipped(m)) => {
                     eprintln!("skipped: {m}");
                     ExitCode::SUCCESS

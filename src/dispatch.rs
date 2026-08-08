@@ -1,4 +1,4 @@
-use crate::actions::{clipboard, input_source, launcher, open, tile};
+use crate::actions::{appearance, clipboard, input_source, launcher, open, tile};
 use crate::config::Config;
 use crate::error::{ActionError, ActionResult};
 
@@ -12,6 +12,7 @@ pub enum Action {
     ClipboardShow,
     ClipboardCapture,
     ClipboardPaste(usize),
+    ToggleDarkMode,
 }
 
 pub fn dispatch(config: &Config, action: &Action) -> ActionResult {
@@ -24,12 +25,14 @@ pub fn dispatch(config: &Config, action: &Action) -> ActionResult {
         Action::ClipboardShow => clipboard::show(config),
         Action::ClipboardCapture => clipboard::capture(config),
         Action::ClipboardPaste(i) => clipboard::paste_index(config, *i),
+        Action::ToggleDarkMode => appearance::toggle(),
     }
 }
 
 pub fn parse_action(kind: &str, arg: Option<&str>) -> Result<Action, ActionError> {
     match kind {
         "open-default-browser" | "open-browser" => Ok(Action::OpenDefaultBrowser),
+        "toggle-dark-mode" => Ok(Action::ToggleDarkMode),
         "open" => {
             let target = arg.ok_or_else(|| ActionError::failed("open requires target"))?;
             match target.to_ascii_lowercase().as_str() {

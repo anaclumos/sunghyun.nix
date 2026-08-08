@@ -14,8 +14,9 @@ in
   home.file.".zprofile".source = zsh + "/.zprofile";
   home.file.".zlogin".source = zsh + "/.zlogin";
 
-  # ~/.zshenv hardcodes ZSH_CONFIG_HOME to ~/.config/zsh; these two paths are
+  # ~/.zshenv hardcodes ZSH_CONFIG_HOME to ~/.config/zsh; these paths are
   # the other half of that contract.
   home.file.".config/zsh/lib".source = zsh + "/lib";
   home.file.".config/zsh/rc".source = zsh + "/rc";
+  home.file.".config/zsh/bin".source = zsh + "/bin";
 }
