@@ -158,14 +158,28 @@ in
         HOMEBREW_NO_ENV_HINTS = "1";
       };
     };
+    # dotenvx is not on homebrew-core (verified 2026-08-08: brew info dotenvx
+    # misses; only dotenvx/brew/dotenvx). Homebrew 6 refuses untrusted
+    # third-party taps and aborts the whole bundle, so the tap must carry
+    # trusted = true (nix-darwin emits `tap "...", trusted: true`).
+    taps = [
+      {
+        name = "dotenvx/brew";
+        trusted = true;
+      }
+    ];
     brews = [
+      "dotenvx/brew/dotenvx"
       "fnm"
       "gh"
+      "kanata"
       "mas"
       "mole"
+      "pscale"
       "ripgrep"
+      "stripe-cli"
       "tmux"
-      "kanata"
+      "vercel"
     ];
     casks = [
       "1password"
@@ -186,6 +200,7 @@ in
       "karabiner-elements"
       "linear"
       "macs-fan-control"
+      "orbstack"
       "slack"
       # Standalone GUI variant (system Network Extension), so MagicDNS DNS
       # config is native; the `tailscale` formula is the CLI-only tailscaled

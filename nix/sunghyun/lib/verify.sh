@@ -20,6 +20,8 @@ cmd_verify() {
   check_btop
   check_aside
   check_macs_fan_control
+  check_orbstack
+  check_dev_clis
   check_tailscale
   check_default_browser
   check_dock
@@ -161,6 +163,48 @@ check_macs_fan_control() {
     step skipped macs_fan_control "Macs Fan Control absent (headless; the cask installs it on a GUI Mac)"
   else
     step failed macs_fan_control "Macs Fan Control missing; the macs-fan-control cask should have installed it"
+  fi
+}
+
+# OUTCOMES.md row as: OrbStack present, installed by the orbstack cask.
+check_orbstack() {
+  if [ -d /Applications/OrbStack.app ]; then
+    step ok orbstack "/Applications/OrbStack.app present"
+  elif is_headless; then
+    step skipped orbstack "OrbStack absent (headless; the cask installs it on a GUI Mac)"
+  else
+    step failed orbstack "OrbStack missing; the orbstack cask should have installed it"
+  fi
+}
+
+# OUTCOMES.md row as: dotenvx, vercel, pscale and stripe CLIs on PATH from
+# Homebrew formulae (stripe-cli installs the `stripe` binary).
+check_dev_clis() {
+  local entry id binary package found missing=""
+  for entry in \
+    "dotenvx|dotenvx|dotenvx/brew/dotenvx" \
+    "vercel|vercel|vercel" \
+    "pscale|pscale|pscale" \
+    "stripe|stripe|stripe-cli"; do
+    id="${entry%%|*}"
+    binary="${entry#*|}"
+    package="${binary#*|}"
+    binary="${binary%%|*}"
+    if found="$(first_existing "/opt/homebrew/bin/$binary" "/usr/local/bin/$binary")" ||
+      found="$(command -v "$binary" 2>/dev/null)"; then
+      :
+    else
+      missing="$missing $id($package)"
+    fi
+  done
+  if [ -z "$missing" ]; then
+    step ok dev_clis "dotenvx vercel pscale stripe present"
+  elif is_headless; then
+    step skipped dev_clis "dev CLIs missing:$missing (headless; brew installs them on a GUI Mac)"
+  elif [ ! -x /opt/homebrew/bin/brew ]; then
+    step skipped dev_clis "Homebrew absent, so the declared formulae could not install yet; converges next switch"
+  else
+    step failed dev_clis "dev CLIs missing:$missing; homebrew.brews should have installed them"
   fi
 }
 
