@@ -1,0 +1,22 @@
+---
+description: Karabiner Core-Service wedge after config relinks; no-sudo kickstart recovery
+alwaysApply: true
+---
+
+# Karabiner Core-Service Wedge
+
+Incident (2026-08-08): the Karabiner-Elements 16.1.0 root Core-Service daemon wedged deaf while holding the exclusive keyboard grab, after three rapid `karabiner.json` symlink relinks (10:13, 10:14, 10:17) from repeated Home Manager activations during a refactor. Every key was eaten, including the on-screen Accessibility Keyboard. Kanata was uninvolved (not running, daemon disabled). The daemon logged nothing for two hours and did not react to the next symlink flip while `ps` and `launchctl` showed it healthy and grabbing.
+
+**Two Core-Service processes are BY DESIGN on 16.1, not a bug:** the install ships both a root LaunchDaemon (`org.pqrs.service.daemon.Karabiner-Core-Service`) and a per-user SMAppService LaunchAgent (label `org.pqrs.service.agent.Karabiner-Core-Service-rev2`, plist inside "Karabiner-Elements Non-Privileged Agents v2.app"). Do not treat the pair as a stale duplicate and kill one.
+
+**Why:** grab-alive-plus-pipeline-dead is the same brick class as [kanata-never-brick-keyboard](mdc:.cursor/rules/kanata-never-brick-keyboard.mdc): an exclusive IOHID seize with nowhere to emit leaves no usable keyboard device, so even the OSK dies, and the owner cannot type a password to fix it.
+
+**Diagnosis signature:** `~/.config/karabiner/karabiner.json` symlink mtime flips (Home Manager relink) with **no matching** `Load /Users/.../karabiner.json...` line in `/var/log/karabiner/core_service.log`, while the daemon still holds grabs (`grabbed` entries earlier, process alive). A healthy daemon logs a reload within seconds of every flip.
+
+**How to apply:**
+
+1. Recovery needs **no sudo**: `launchctl kickstart -k gui/501/org.pqrs.service.agent.Karabiner-Core-Service-rev2` (add `launchctl kickstart -k gui/501/org.pqrs.service.agent.karabiner_console_user_server` if needed). Restarting the user agent snaps the root daemon into a full re-grab cycle; the log shows the healthy pattern within seconds (`hid queue value monitor is started (grabbed)` per keyboard, then `Karabiner DriverKit VirtualHIDKeyboard ... (observed)`).
+2. Do not start with root-daemon surgery, config edits, or reinstalls; the user-domain kickstart resolved the 2026-08-08 incident alone. Never `brew uninstall --cask karabiner-elements` (purges shared DriverKit files).
+3. Prevention: batch `darwin-rebuild switch` runs instead of firing several within minutes; every activation that changes karabiner.json relinks it and re-rolls the wedge dice.
+4. After any switch that relinks karabiner.json, check `/var/log/karabiner/core_service.log` for the reload line; if it is missing, run the kickstart before anyone notices dead keys.
+5. Related: [kanata-never-brick-keyboard](mdc:.cursor/rules/kanata-never-brick-keyboard.mdc), [never-ask-automatable-owner-steps](mdc:.cursor/rules/never-ask-automatable-owner-steps.mdc).
