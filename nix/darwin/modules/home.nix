@@ -10,8 +10,6 @@ in
 
   home.file.".hammerspoon/init.lua".text = hammerspoon.initLua;
 
-  # Karabiner-Elements live-reloads this file and refuses GUI edits against it,
-  # which is the point: the repo is the only source of truth.
   home.file.".config/karabiner/karabiner.json".source = assets + "/karabiner.json";
 
   home.file.".config/sunghyun/kanata.kbd".text = subst (

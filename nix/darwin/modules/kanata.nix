@@ -1,6 +1,3 @@
-# Default OFF: a grabbing Kanata without healthy VirtualHID output drops every
-# key, so a bare `darwin-rebuild` must never start it. The only enable path is
-# `sunghyun kanata enable --safe`.
 {
   config,
   lib,
@@ -26,9 +23,6 @@ in
 
   config = lib.mkMerge [
     (lib.mkIf (!cfg.kanata.enable) {
-      # Persisted every activation while the engine is off, because the runtime
-      # `kanata disable` path never runs when the daemon is already parked, and
-      # without the override a bare plist rename re-arms it at boot.
       system.activationScripts.extraActivation.text = lib.mkAfter ''
         launchctl disable system/com.anaclumos.kanata || true
       '';

@@ -16,7 +16,6 @@ in
       Label = "com.anaclumos.hammerspoon";
       ProgramArguments = [ "${app}/Contents/MacOS/Hammerspoon" ];
       RunAtLoad = true;
-      # Restart a crash, respect a deliberate quit.
       KeepAlive.SuccessfulExit = false;
       ProcessType = "Interactive";
       StandardOutPath = "${home}/Library/Logs/sunghyun/hammerspoon.out.log";
@@ -28,9 +27,6 @@ in
     install -d -o ${lib.escapeShellArg primaryUser} -g staff ${lib.escapeShellArg "${home}/Library/Logs/sunghyun"}
     if [ -d ${lib.escapeShellArg app} ]; then
       hsUid="$(id -u -- ${lib.escapeShellArg primaryUser})"
-      # -k, not a plain kickstart: init.lua is a symlink into the store, so a
-      # switch replaces the target under a Hammerspoon that already read it, and
-      # a process started before the link existed has no pathwatcher to notice.
       launchctl asuser "$hsUid" sudo --user=${lib.escapeShellArg primaryUser} -- \
         /bin/launchctl kickstart -k "gui/$hsUid/com.anaclumos.hammerspoon" >/dev/null 2>&1 || true
     else

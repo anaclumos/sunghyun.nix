@@ -67,9 +67,6 @@
       darwinConfigurations.auracomputer = mkHost "auracomputer" ./nix/darwin/hosts/auracomputer.nix;
       darwinConfigurations.default = mkHost "default" ./nix/darwin/hosts/default.nix;
 
-      # One output per Linux system, because a Home Manager configuration is
-      # built for a fixed platform: a single `sc@linux` could not activate on an
-      # aarch64 box. `sc@linux` stays as an x86_64 alias.
       homeConfigurations =
         let
           mkLinuxHome =
@@ -77,7 +74,6 @@
             home-manager.lib.homeManagerConfiguration {
               pkgs = import nixpkgs {
                 system = linuxSystem;
-                # cursor-cli and claude-code are unfree.
                 config.allowUnfree = true;
               };
               modules = [

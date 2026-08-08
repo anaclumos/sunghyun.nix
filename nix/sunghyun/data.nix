@@ -1,8 +1,5 @@
 {
   ime = {
-    # "ABC" is the outcome name; this Mac enables the U.S. layout, and
-    # TISSelectInputSource returns paramErr for an installed-but-not-enabled
-    # source, so the enabled id is the one that has to be named here.
     abc = "com.apple.keylayout.US";
     korean = "com.apple.inputmethod.Korean.2SetKorean";
   };
@@ -25,7 +22,6 @@
     planetscale = "tableplus";
   };
 
-  # Fractions of a display's usable area (menu bar and Dock excluded).
   tiles = {
     left = {
       x = 0.0;
@@ -124,13 +120,10 @@
 
   tileGap = 0;
 
-  # Chords that belong to an app, not to macOS. Matched by chord rather than by
-  # symbolic hot key identifier: Apple renumbers these between releases.
   reservedChords = [
     {
       reservedFor = "1Password Quick Access";
       virtualKey = 49;
-      # command | shift
       modifiers = 1179648;
     }
   ];

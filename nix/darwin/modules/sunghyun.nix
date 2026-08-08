@@ -20,12 +20,7 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ package ];
 
-    # extraActivation is a hook nix-darwin actually runs (arbitrary
-    # activationScripts.<name> entries are ignored by the activate script).
     system.activationScripts.extraActivation.text = ''
-      # The CLI no longer calls the Accessibility API itself, so it needs no TCC
-      # identity of its own: Hammerspoon holds that grant. Everything below is
-      # cleanup of the compiled binary's stable-path and code-signing scaffolding.
       if [ -e /usr/local/bin/sunghyun ] && ! [ -L /usr/local/bin/sunghyun ]; then
         echo "sunghyun: removing the compiled binary staged at /usr/local/bin (Hammerspoon owns Accessibility now)"
         rm -f /usr/local/bin/sunghyun
