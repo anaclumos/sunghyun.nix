@@ -48,7 +48,7 @@ One channel per distribution reality. Installing is the declarative outcome; eve
 | Channel | Members |
 |---|---|
 | Homebrew brews | fnm, gh, mas, mole, pscale, ripgrep, `getsentry/tools/sentry`, stripe-cli, tmux, vercel |
-| Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, gcloud-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
+| Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, gcloud-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, keka, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
 | `homebrew.masApps` | KakaoTalk, What Watt?, Amphetamine |
 | nixpkgs `home.packages` (macOS + Linux) | btop, bun, dotenvx, inngest, resend (`nix/pkgs/resend-cli.nix`) |
 | nixpkgs, Linux only | claude-code, codex, cursor-cli |

@@ -44,6 +44,7 @@
       "iina"
       "itsycal"
       "karabiner-elements"
+      "keka"
       "linear"
       "macs-fan-control"
       "obsidian"
