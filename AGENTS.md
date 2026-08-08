@@ -49,6 +49,7 @@ Highest severity. Violated repeatedly; treat as hard stops.
 ## Code
 
 - Fail fast. Simplest V1. No bespoke helpers (use libraries). No new regex. No comments except non-obvious business rules or documented tradeoffs. Minimal diffs; do not fix unrelated typos/cosmetics inside a functional change.
+- Nix (sunghyun.nix): zero comments in nix files, including inside embedded strings; zero runtime shell in the tree (no writeShellScript, no activation scripts, no shell launchd payloads, no tracked .sh). Declarative options only; runtime code lives in Hammerspoon Lua with in-process JXA (owner, 2026-08-08).
 - TS: zod for runtime narrowing; no `as` casts (except `import * as` / `as const`). `z.infer` over hand-written interfaces. Validated `env.ts`. Prefer `for...of` / `.entries()`.
 - Frontend: Tailwind default scale; nuqs for URL state; React Query for client fetch; no mount-`useEffect` state seeding; React Compiler owns memoization. Compose from the shared UI layer. Apple HIG austerity. Every UI state addressable by URL.
 - Data: tracked migrations only; normalize schemas; idempotent writers; uuidv7 PKs. Verify migration applied against the DB.

@@ -1,111 +1,168 @@
 # sunghyun.nix
 
-Outcome-driven machine setup: a **nix-darwin** flake owns everything declarative on the Mac, a portable **Home Manager** layer covers Linux hosts, plus a generated `sunghyun` CLI (shell and JXA, built by the flake) for what Nix genuinely cannot express. The spec is [OUTCOMES.md](OUTCOMES.md), not any particular tool.
+Fully declarative machine setup for macOS and Linux.
 
-**One-shot is the only setup UX.** Paste one command; the script installs Nix, applies the flake, and surfaces macOS's own one-time permission prompts (opens the exact Settings pane, polls, skips gracefully on timeout). Never a multi-step “install Nix, then rebuild, then post-switch” primary path.
+- A **nix-darwin** flake owns the Mac. A portable **Home Manager** layer covers Linux hosts, headless included.
+- Repo rules (owner 2026-08-08): no comments in nix files, no runtime shell anywhere in the tree. Declarative options only. What genuinely needs code runs inside Hammerspoon as Lua, with private-framework calls as in-process JXA.
+- The spec is the [Outcomes](#outcomes) ledger below, not any particular tool.
+- Framework [anaclumos/nix](https://github.com/anaclumos/nix) stays NixOS/keyd-only. Do not merge this flake into it.
+- History (2026-08-08): this repo replaces the private `anaclumos/sunghyun-os` (deleted per owner decision; recreated public from an audited tree). The declarative rewrite of 2026-08-08 then retired the flake-built `sunghyun` CLI, `install.sh`, the Kanata engine and every converge script.
 
-Framework [anaclumos/nix](https://github.com/anaclumos/nix) stays NixOS/keyd-only. Do not merge this into that flake.
+## Setup
 
-History note (2026-08-08): this repo replaces the private `anaclumos/sunghyun-os` (deleted per owner decision; recreated public from an audited tree). The binary was renamed `sunghyun-os` → `sunghyun`.
-
-## Setup (macOS or Linux)
+macOS, fresh machine:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/anaclumos/sunghyun.nix/main/install.sh | bash
+xcode-select --install
+curl -fsSL https://install.determinate.systems/nix | sh -s -- install --no-confirm
+git clone https://github.com/anaclumos/sunghyun.nix.git ~/Developer/sunghyun.nix
+sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake ~/Developer/sunghyun.nix#auracomputer
 ```
 
-macOS: Terminal once for the sudo password. The only other human surface is macOS's own one-time prompts (TCC toggles, dext approval) in windows the script opens; Apple ID is assumed from Setup Assistant (signed out ⇒ mas apps skip and converge later).
+- An unknown Mac uses `.#default`, the only config with all naming fields unset, so it keeps its own identity (row q).
+- After the first switch, `sudo darwin-rebuild switch --flake .#auracomputer` or the zsh `build` function (row aq).
+- Linux (non-NixOS, e.g. Ubuntu servers): `nix run home-manager -- switch --flake .#sc@x86_64-linux` (or `sc@aarch64-linux`; `sc@linux` aliases x86_64). Headless-safe, no GUI steps.
 
-Linux (non-NixOS, e.g. Ubuntu servers): same one-liner; it detects Linux and applies the portable Home Manager layer (`.#sc@linux`) with Determinate Nix. No GUI steps; headless-safe.
-
-What it does (macOS):
-
-- Xcode CLT (noninteractive when the catalog allows)
-- Determinate Nix (`install --no-confirm`)
-- Clone/update this repo (`~/Developer/sunghyun.nix`), the only repo the run needs
-- `darwin-rebuild switch --flake .#auracomputer` (or `SUNGHYUN_HOST` / matching LocalHostName); the flake builds and ships the `sunghyun` binary
-- `sunghyun post-switch` (opens Settings panes for one-time grants, polls, skips on timeout)
-
-**Keyboard engine: Karabiner-Elements** (declarative `karabiner.json` via Home Manager; see the engine evaluation in [OUTCOMES.md](OUTCOMES.md)). **Kanata is the opt-in alternative** (`SUNGHYUN_KEYBOARD_ENGINE=kanata`): the flake defaults its LaunchDaemon **off** so a bare rebuild cannot brick typing, and it is enabled only via `sunghyun kanata enable --safe` (kanata ≥ 1.12.0 → VirtualHID daemon → passthrough proof → full config proof → LaunchDaemon; automatic `kanata disable` rollback on failure). Emergency: `sunghyun kanata disable`. Both paths keep the `launchctl disable system/com.anaclumos.kanata` override consistent: disable records it, safe-enable clears it, so a bare plist rename can never re-arm the daemon on boot.
-
-Headless VM: same one-liner with `SUNGHYUN_HEADLESS=1` (GUI surfaces skip; skips are not failures).
-
-Module map: [docs/nix-darwin.md](docs/nix-darwin.md).
-
-### Module map (short)
+## Layout
 
 | Path | Role |
 |---|---|
-| `install.sh` | **Only** setup entry (darwin + linux) |
-| `flake.nix` | `darwinConfigurations.auracomputer`, `homeConfigurations."sc@linux"` |
-| `nix/darwin/hosts/auracomputer.nix` | Host naming |
-| `nix/darwin/modules/base.nix` | primaryUser, stateVersion, Touch ID sudo |
-| `nix/darwin/modules/homebrew.nix` | brews/casks + non-fatal mas activation |
-| `nix/darwin/modules/kanata.nix` | Root LaunchDaemon (**default off**; opt-in engine) |
-| `nix/darwin/modules/defaults.nix` | Pinned `system.defaults` |
-| `nix/darwin/modules/home.nix` | HM (darwin): karabiner.json, `~/.config/sunghyun/*` |
-| `nix/home/portable.nix` | HM (portable): hushlogin, vendored zsh dotfiles (darwin + linux) |
-| `nix/darwin/modules/sunghyun.nix` | Flake-built CLI + stable `/usr/local/bin` copy (TCC path) |
+| `flake.nix` | `darwinConfigurations.{auracomputer,default}`, per-arch `homeConfigurations`, checks, formatter; inputs [sunghyun-sans](https://github.com/anaclumos/sunghyun-sans) and [tokenmaxxing](https://github.com/anaclumos/tokenmaxxing) |
+| `nix/darwin/hosts/` | `auracomputer.nix` names the machine; `default.nix` names nothing |
+| `nix/darwin/modules/base.nix` | primaryUser, `nixpkgs.config.allowUnfree`, `nix.enable = false`, Touch ID sudo, fonts |
+| `nix/darwin/modules/homebrew.nix` | Taps, brews, casks, `masApps`, `cleanup = "uninstall"` with the karabiner-elements eval assertion |
+| `nix/darwin/modules/defaults.nix` | Every `system.defaults` key, including `CustomUserPreferences` for Finder desktop view and KakaoTalk language |
+| `nix/darwin/modules/hammerspoon.nix` | Hammerspoon cask + user LaunchAgent |
+| `nix/darwin/modules/home.nix` | HM (darwin): generated `~/.hammerspoon/init.lua`, `karabiner.json`, ghostty config |
+| `nix/hammerspoon.nix` | Generates init.lua: tile geometry, Hyper chord bindings, dark-mode JXA, default-browser open |
+| `nix/home/portable.nix` | HM (darwin + linux): hushlogin, vendored zsh dotfiles, shared `home.packages`, agent-guide links |
+| `nix/home/linux.nix` | Linux-only packages and the tokenmaxxing module |
+| `nix/home/fonts.nix` | Linux fonts + fontconfig |
+| `nix/pkgs/resend-cli.nix` | Flake-local derivation for the Resend CLI |
+| `assets/` | karabiner.json, ghostty config, vendored zsh tree |
 
-## Dotfiles wiring
+## Packages
 
-The zsh configuration is **content in this repo** (`assets/dotfiles/zsh/`). Home Manager links `~/.zshenv` / `~/.zshrc` / `~/.zprofile` / `~/.zlogin` and `~/.config/zsh/{lib,rc,bin}` from the Nix store, so the files are read-only and no vendor installer can append to them behind the flake's back. `~/.zshenv` sets `ZSH_CONFIG_HOME=~/.config/zsh`; the rc files source `lib/` and `rc/` from there.
+One channel per distribution reality. Installing is the declarative outcome; every sign-in stays with the owner's session.
 
-Edit the dotfiles in `assets/dotfiles/zsh/` and `darwin-rebuild switch` (`z` opens this repo). There is no second repo and no working-copy dependency: the machine converges with nothing else cloned. `programs.zsh` stays off, since it would generate rc content and take ownership.
+| Channel | Members |
+|---|---|
+| Homebrew brews | fnm, gh, mas, mole, pscale, ripgrep, `getsentry/tools/sentry`, stripe-cli, tmux, vercel |
+| Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, gcloud-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
+| `homebrew.masApps` | Xcode, KakaoTalk, What Watt?, Amphetamine |
+| nixpkgs `home.packages` (macOS + Linux) | btop, bun, dotenvx, inngest, resend (`nix/pkgs/resend-cli.nix`) |
+| nixpkgs, Linux only | claude-code, codex, cursor-cli |
+| Manual | mint (Mintlify): `bun add --global mint`, lands in `~/.bun/bin` |
 
-## CLI (runtime)
+- Brew carries vendor self-update channels and macOS-only tools. The coding-CLI casks stay writable so `cursor-agent update` and friends work, which a Nix store copy cannot.
+- `stripe-cli` installs `stripe`. The sentry tap formula installs `sentry`; `sentry-cli` is a zsh alias that prints "Use `sentry --help`" because the homebrew-core `sentry-cli` formula is a different tool (owner 2026-08-08).
+- inngest has no homebrew-core formula, only a third-party tap, so it comes from nixpkgs; it is SSPL, covered by `nixpkgs.config.allowUnfree` in `base.nix` and in the Linux pkgs imports.
+- The published `resend-cli` npm tarball ships a self-contained `dist/cli.cjs`, so the derivation is a node wrapper around it, no npm build.
+- mint stays outside Nix: its keytar dependency fails to compile under nixpkgs clang and needs prebuilds, which bun installs. With activation hooks banned, converging it is a one-line manual step.
+- dotenvx comes from nixpkgs, never its third-party tap: on macOS 27 Homebrew refuses that formula while `/Applications/Xcode.app` trails the CLT (row as).
+- nixpkgs bun guarantees bun on a fresh machine; a curl-installed `~/.bun` wins on PATH and keeps its own upgrade channel.
+- On macOS the coding CLIs come from Homebrew only, never also from `home.packages`, so two binaries cannot fight over PATH order.
 
-```bash
-sunghyun open ghostty
-sunghyun open-default-browser
-sunghyun input-source ABC
-sunghyun tile left
-sunghyun launcher --query Ghostty
-sunghyun spotlight restore
-sunghyun verify
-sunghyun kanata status
-sunghyun kanata enable --safe   # install.sh path; proof + rollback
-sunghyun kanata disable         # emergency
-sunghyun post-switch            # used by install.sh; not a human follow-up step
-```
+## Dotfiles
 
-Default Mac launcher is **Apple Spotlight on Cmd-Space**. Hyper+J opens the **OS default browser**.
+The zsh configuration is content in this repo (`assets/dotfiles/zsh/`).
 
-### Spotlight: `terminal` → Ghostty
+- Home Manager links `~/.zshenv` / `~/.zshrc` / `~/.zprofile` / `~/.zlogin` and `~/.config/zsh/{lib,rc,bin}` from the Nix store, so the files are read-only and no vendor installer can append to them behind the flake's back.
+- Edit in `assets/dotfiles/zsh/` and switch (`z` opens this repo). No second repo, no working-copy dependency.
+- `programs.zsh` stays off. It would generate rc content and take ownership away from the vendored files.
 
-`post-switch` installs `~/Applications/terminal.app`, a thin wrapper that runs `open -b com.mitchellh.ghostty`.
+## Keyboard
 
-### Spotlight clipboard history
+**Karabiner-Elements** is the engine, declarative `karabiner.json` via Home Manager. **Hammerspoon** is the action host: one long-lived app holds the Accessibility grant and runs the window and system actions.
 
-On macOS Tahoe+, Clipboard History is system Spotlight: ⌘Space then ⌘4 (Apple ships no global hotkey). ⌘⇧V is bound in `karabiner.json` to send exactly that sequence as virtual HID key events — no shell hop, no TCC dependency. `sunghyun spotlight clipboard` is the manual CLI equivalent (posts CGEvents; needs the binary's Accessibility grant).
+- Caps tap maximizes the window, Caps hold is Hyper (row a).
+- Hyper arrows / 1-4 / Enter tile, Hyper+W right three quarters, Hyper+C center, Hyper+V top-left (row b).
+- Hyper+J opens the OS default browser; H/I/K/L/M/N/P/R launch apps; D shows the desktop; F opens Mission Control (row c).
+- L⌘ tap switches to ABC, R⌘ tap to 2-Set Korean; held they stay normal ⌘ chords (row d).
+- ⌘⇧V opens Spotlight clipboard history (row e). ⌘Space stays Apple Spotlight (row f).
+- Top row fires Apple hardware actions bare and function keys on fn, except F4/F5 (row o). A bare fn tap opens Emoji & Symbols (row u). Hyper+grave toggles light/dark appearance (row t).
+
+Wiring: karabiner.json holds the Hyper variable and either acts natively (`software_function.open_application` for app keys) or emits a real ⌘⌃⌥⇧ chord that `hs.hotkey.bind` handles inside the generated init.lua. No shell hop anywhere on the hot path.
+
+Kanata is retired (2026-08-08): the opt-in daemon was default-off, never enabled on any host, and its enable path was CLI machinery this repo no longer carries. The 2026-08-07 brick incident (root exclusive grab with dead VirtualHID output kills every key) stays the reason Karabiner-Elements is the engine: its failure mode is "no remap", never "no keys" (row l).
 
 ## Permissions (GUI Mac)
 
-Policy: the system opens the exact Settings pane (or lets macOS prompt) and polls; the owner clicks the toggle; timeouts skip gracefully and converge on the next switch.
+- Homebrew converges on activation (`brew bundle`). `masApps` rides the same Brewfile and needs a signed-in App Store; this machine is signed in and every declared app is installed, so the lines no-op. A fresh signed-out machine fails those lines; sign in and switch again.
+- Two one-time human toggles on a fresh machine, each raised by macOS itself: the Karabiner grabber grants at first launch, and Accessibility for Hammerspoon. Both attach to the app bundle, so they survive every rebuild.
+- Sign-in is never automated (Apple ID, Tailscale, OrbStack, Vercel, PlanetScale, Stripe, gcloud, Sentry, Resend, cursor-agent). Install, then let the owner's session take over.
+- No nix-darwin options exist for TCC grants, system-extension approval, or App Store sign-in (checked against the full manual 2026-08-07; `TCC.db` is SIP-protected, PPPC profiles are MDM-only).
 
-| Capability | Permission |
+## Outcomes
+
+Everything here is a desired result, not a stack (owner reframing 2026-08-07). Ids are stable and never renumbered; superseded mechanisms say so with a date. The 2026-08-08 declarative rewrite retired all converge and verify machinery, so a few rows keep their outcome as live converged state that a fresh machine restores by hand.
+
+### Keyboard
+
+| id | outcome | mechanism |
+|---|---|---|
+| a | Caps tap = maximize; Caps hold = Hyper | karabiner.json variable-based Hyper; the tap emits ⌘⌃⌥⇧M, which Hammerspoon tiles to maximize |
+| b | Hyper tiling: halves, fourths, fullscreen, W right three quarters, C center, V top-left; fractions against the visible frame of the focused window's display | karabiner emits ⌘⌃⌥⇧ chords; `hs.hotkey.bind` runs `tile()` in the generated init.lua; geometry is inlined in `nix/hammerspoon.nix`; `screen:frame()` excludes menu bar and Dock |
+| c | Hyper app keys activate a running instance instead of starting a second; a missing app raises no dialog | karabiner `software_function.open_application` by bundle identifier (native since KE 15.0.19, installed 16.1.0); Hyper+J resolves the LaunchServices http handler via `hs.urlevent.getDefaultHandler` and focuses it |
+| d | L⌘ tap = ABC IME, R⌘ tap = 2-Set Korean; held = normal ⌘ chords | karabiner `to_if_alone` + lazy modifiers firing the system input-source shortcut (^Space, symbolic hot key 60) as a virtual HID chord, gated by `input_source_unless`; per-manipulator 500 ms timeout. Not `TISSelectInputSource`: out-of-process calls update the menu extra without switching the focused app's input context on macOS 26/27 |
+| e | ⌘⇧V = Spotlight clipboard history | karabiner sends virtual ⌘Space then ⌘4 as HID events, no shell hop and no TCC |
+| o | Top row: bare = Apple hardware actions, fn = function keys, except F4 (bare plain F4, fn Spotlight) and F5 (bare Control-M, fn dictation) | `NSGlobalDomain."com.apple.keyboard.fnState" = false` as the base state plus two karabiner rules for f4/f5, guarded by `variable_unless`. IOHIDSystem reads the preference at login only; the in-session converge is retired (2026-08-08), so a changed value applies at next login |
+| t | Hyper+grave toggles light/dark, alternating every press | Hammerspoon runs in-process JXA over SkyLight (`SLSGetAppearanceThemeLegacy` / `SLSSetAppearanceThemeNotifying`), no TCC gate. The Apple Events route would need a consent prompt and a privacy row |
+| w | ⌘⇧Space belongs to 1Password Quick Access and nothing else | Converged live 2026-08-08 and persisted across login: the macOS 27 claimant was symbolic hot key 263, `screenshots.ask-siri-active-window`, key 49, modifiers 1179648. The converge machinery is retired; a fresh machine disables the claimant in System Settings Keyboard Shortcuts. Never `CustomUserPreferences` for this key: it writes whole keys and `AppleSymbolicHotKeys` holds every other system shortcut |
+| u | Bare fn tap opens Emoji & Symbols | `system.defaults.hitoolbox.AppleFnUsageType`; HIToolbox reads it at process start, so a running session converges at next login |
+| l | Hard invariant: the keyboard never bricks | Karabiner-Elements' failure mode is "no remap", not "no keys". Kanata, whose root exclusive grab bricked typing on 2026-08-07, is fully retired (2026-08-08): daemon, kbd files and enable machinery deleted. The eval assertion in `homebrew.nix` keeps `karabiner-elements` in the cask list because `cleanup = "uninstall"` would otherwise run its uninstall script and purge the shared DriverKit VirtualHIDDevice files |
+
+### System
+
+| id | outcome | mechanism |
+|---|---|---|
+| f | ⌘Space stays Apple Spotlight; typing "terminal" launches Ghostty | Converged live; the `~/Applications/terminal.app` wrapper persists. Its installer machinery is retired (2026-08-08) |
+| g | Menu bar shows no date; Time Machine extra hidden | `menuExtraClock.ShowDate = 2` and `CustomUserPreferences` systemuiserver keys |
+| h | `~/.hushlogin` present | Home Manager `home.file` |
+| i | Declared packages and apps present | `homebrew.{brews,casks,masApps}` plus nixpkgs (see [Packages](#packages)) |
+| j | zsh, dotfiles and runtimes configured with no second repo to clone | vendored zsh tree, HM store links, `programs.zsh` off (see [Dotfiles](#dotfiles)) |
+| k | Fresh-Mac bootstrap is short and unattended after one sudo | Superseded 2026-08-08: `install.sh` is deleted; setup is the four commands under [Setup](#setup). macOS still raises its own one-time dialogs (two "administer your computer" prompts on a first run, measured 2026-08-08) |
+| m | Headless targets are first-class | The Linux homeConfigurations carry no GUI surface at all |
+| n | Everything idempotent | `darwin-rebuild switch` is the only converge path; `nix flake check` evaluates both darwin systems. The `sunghyun verify` outcome checker is retired (2026-08-08) |
+| p | cursor-agent present on macOS and screenless Linux | macOS: `cursor-cli` cask, writable for self-update. Linux: nixpkgs `cursor-cli` |
+| v | codex and claude CLIs present on macOS and screenless Linux; interactive zsh ships `cc` = `claude --dangerously-skip-permissions` | macOS: `codex` and `claude-code` casks. Linux: nixpkgs. `cc` is a zsh function in `assets/dotfiles/zsh/rc/aliases.zsh` |
+| q | A machine keeps its own identity; only the config that names a machine renames it | `hosts/auracomputer.nix` is the sole config setting naming fields; every other Mac activates `.#default`, whose naming stays unset. Incident behind the rule: a VM that activated the named host came up as `auracomputer-2.local` |
+| r | Mac App Store apps converge | `homebrew.masApps` (Brewfile `mas` lines). Supersedes the 2026-08-08 convergence LaunchDaemon, retired the same day in the declarative rewrite. Needs a signed-in App Store; on this machine all four apps are installed so the lines no-op. `mas` cannot uninstall, so removal stays manual |
+| s | A VM never wedges on the App Store | Superseded 2026-08-08: the `sunghyun virt` detector is retired with the CLI. A signed-out guest now fails the `mas` Brewfile lines instead of skipping them; the named-host rule (row q) keeps VMs on `.#default` |
+| v | Sunghyun Sans present, every family, macOS and Linux | flake input pinned in `flake.lock`; macOS `fonts.packages`, Linux `nix/home/fonts.nix` |
+| aa | Dia is gone | Cask dropped 2026-08-08; live uninstall done then |
+| ab | Aside is the system default browser, so Hyper+J opens it | Set once live 2026-08-08 (macOS raises its own confirmation panel for this change, no way around it). The setter machinery is retired; Hyper+J follows whatever LaunchServices reports, so the binding stays correct even if the owner changes browsers |
+| ac | Dock holds Finder, Downloads and Trash, nothing else | `dock.persistent-apps = [ ]`, `persistent-others` Downloads, `show-recents = false`. Empty list, not null: nix-darwin drops null options, so null is "unmanaged" |
+| ad | Desktop shows hard disks, item info under each icon, labels on the right | `finder.ShowHardDrivesOnDesktop` plus `CustomUserPreferences` writing the full `DesktopViewSettings.IconViewSettings` dictionary, values mirroring the converged live state (icon 64, grid 54, text 12). Supersedes the PlistBuddy merge script (retired 2026-08-08): the write replaces the whole dictionary, so the dictionary is declared whole |
+| ae | Celsius, metric | `AppleTemperatureUnit`, `AppleMeasurementUnits`, `AppleMetricUnits`, all three because macOS reads all three |
+| af | KakaoTalk runs in Korean | `CustomUserPreferences."com.kakao.KakaoTalkMac".AppleLanguages = [ "ko" ]`, the Language & Region per-app mechanism. Best effort: the sandboxed container can shadow the outside domain; the language is already converged live on this machine |
+| ag | Tailscale installed; MagicDNS works once signed in | `tailscale-app` cask, the Standalone GUI variant whose Network Extension owns DNS natively |
+| ah | Finder windows show path bar and status bar | `finder.ShowPathbar`, `finder.ShowStatusBar` |
+| ai | Desktop icons snap to grid | `arrangeBy = "grid"` inside the row ad dictionary |
+| aj | tokenmaxxing (`xx`) present on macOS and Linux | flake input; darwin module with overlay, HM module on Linux with the input's package set explicitly |
+| ak | Aside installed | `aside` cask, official homebrew/cask token |
+| am | Anything Homebrew-managed that this repo does not declare is absent; deleting a definition uninstalls it on the next switch | `onActivation.cleanup = "uninstall"`. Not `"zap"`: zap needs Full Disk Access that sudo activation does not hold. The karabiner-elements assertion (row l) guards the one dangerous deletion. Exception: `mas` apps converge on install only |
+| an | Claude Code and Codex sessions start from the canonical agent guide | HM links `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` to the repo root `AGENTS.md`. Both tools concatenate global then project files, so per-repo guides win conflicts |
+| ao | btop present, macOS and Linux | nixpkgs via shared `home.packages` |
+| ap | Macs Fan Control installed | `macs-fan-control` cask |
+| aq | `build` upgrades the machine the Nix way, never topgrade | zsh `build`: `nix flake update`, then `darwin-rebuild switch` (or the Linux HM activate), then a pathspec-only `flake.lock` commit and push. Brew packages move via `onActivation.{autoUpdate,upgrade}` |
+| ar | Menu bar auto-hide is Never, desktop and fullscreen | `_HIHideMenuBar = false` plus `CustomUserPreferences` `AppleMenuBarVisibleInFullscreen` and controlcenter `AutoHideMenuBarOption = 3`; typed `controlcenter` writes ByHost only and cannot reach that domain |
+| as | OrbStack, dotenvx, Vercel, pscale, Stripe CLIs present | Casks/brews where the vendor channel works: `orbstack`, `vercel`, `pscale`, `stripe-cli`. dotenvx from nixpkgs: its only brew source is a third-party tap that macOS 27 Homebrew refuses while Xcode trails the CLT |
+| at | gcloud, sentry, inngest, mint, resend CLIs present | Cask `gcloud-cli`; tap formula `getsentry/tools/sentry` with the `sentry-cli` redirect alias; nixpkgs `bun` and `inngest`; `resend` from `nix/pkgs/resend-cli.nix`. mint is a manual `bun add --global mint` (installed live 2026-08-08): keytar needs prebuilds nixpkgs clang cannot build, and activation hooks are banned, so no machinery converges it |
+
+## Design notes
+
+Choices the code cannot explain by itself.
+
+| Where | Why |
 |---|---|
-| Karabiner-Elements remap | macOS's own prompts on first launch (grabber); DriverKit dext approval |
-| Kanata (opt-in engine) | Input Monitoring; Karabiner-DriverKit VirtualHIDDevice **v6.2.0**; kanata ≥ 1.12.0; enable only via `kanata enable --safe` |
-| `tile` window placement | Accessibility for Hammerspoon, which runs the placement (pane opened + polled by post-switch) |
-| `mas` apps | Apple ID from Setup Assistant; signed out ⇒ graceful skip |
-
-TCC notes (2026-08-08): window placement moved into Hammerspoon precisely because grants attach to a code identity. One installed app bundle holds the Accessibility grant across every rebuild, where the previous compiled CLI lost it whenever the binary changed. `verify` asks Hammerspoon for `hs.accessibilityState()` over its own IPC port, so trust inherited from a terminal never false-greens it. Nothing else in the repo needs a TCC grant: input source switching, appearance and the reserved-chord fix go through TIS and SkyLight, which have no TCC gate.
-
-Pinned driver: [Karabiner-DriverKit-VirtualHIDDevice v6.2.0](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/tag/v6.2.0).
-
-## Keyboard notes
-
-- Caps tap → tile maximize; Caps hold → Hyper.
-- Hyper arrows / 1-4 / Enter → tiling; Hyper+W → right three quarters; Hyper+J → `sunghyun open browser`.
-- L⌘ tap → ABC; R⌘ tap → 2-Set Korean; hold → normal ⌘ chords (⌘C/V).
-- ⌘⇧V → Spotlight Clipboard History (virtual ⌘Space, ⌘4).
-- Delivered by Karabiner-Elements complex modifications (`assets/karabiner.json`, Home Manager-managed).
-- Kanata brick class: grab without VirtualHID output kills all typing including OSK → use `kanata enable --safe` / `kanata disable` only.
-
-## Verify
-
-`sunghyun verify` reports `ok` / `skipped` / `failed`. Exit `0` when there are no hard failures (headless skips count as skipped). Install runs verify itself; it is not a separate human step.
+| `base.nix` | `nix.enable = false` because Determinate Nix owns the daemon; nix-darwin managing it would fight the installer over `nix.conf` |
+| `base.nix` | `sudo_local` sets `reattach = true` so Touch ID works inside tmux |
+| `homebrew.nix` | `HOMEBREW_NO_ASK=1` and `HOMEBREW_NO_ENV_HINTS=1` because Homebrew 6.x prompts y/n by default, which would stall root activation |
+| `homebrew.nix` | karabiner-elements is a cask, never `services.karabiner-elements`: that module is broken for KE 15+ ([nix-darwin#1041](https://github.com/nix-darwin/nix-darwin/issues/1041)). Never `brew uninstall --cask karabiner-elements` by hand either |
+| `nix/darwin/modules/hammerspoon.nix` | `KeepAlive.SuccessfulExit = false` relaunches a crash and respects a deliberate quit |
+| `nix/darwin/modules/home.nix` | karabiner.json ships read-only via `home.file.source` and stays the sole source of truth; Karabiner-Elements live-reloads it and refuses GUI edits against it |
+| `nix/hammerspoon.nix` | The dark-toggle JXA sits in a `[=[ ]=]` Lua long string because the ObjC signature arrays contain `]]`, which terminates a plain `[[` string early |
 
 ## License
 
