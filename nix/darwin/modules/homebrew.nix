@@ -26,6 +26,7 @@
       "mole"
       "pscale"
       "ripgrep"
+      "scc"
       "getsentry/tools/sentry"
       "stripe-cli"
       "tmux"
