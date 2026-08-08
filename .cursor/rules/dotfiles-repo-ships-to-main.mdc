@@ -1,0 +1,12 @@
+---
+description: "The owner's personal system repo ships by committing straight to main; no PR, no review gate (owner, 2026-07-26)"
+alwaysApply: true
+---
+
+# The Dotfiles Repo Ships To Main
+
+Work in the owner's personal system repo, the one carrying the flake, the shell config, the keyboard assets, `AGENTS.md` and `.cursor/rules`, is delivered by committing and pushing directly to `main`. The owner said on 2026-07-26: "commit and push to master when done, not opening PR." The branch is named `main`, not `master`. The ruling was made for the retired configs repo and carried over to its successor on 2026-08-08.
+
+**Why:** this is a solo repo with no CI and no reviewers, so a pull request adds a round trip and no safety. It is a deliberate local override of the global default endpoint, which is still to open a PR and stop.
+
+**How to apply:** in this repo, finish the work, verify it, then commit and push to `main` without asking. Everywhere else the global rule still holds: open the PR and stop unless the project policy or an explicit ship mandate says otherwise. Direct-to-main covers ordinary repo work, not content the owner has separately gated behind his own approval; a named review gate outranks it. The usual shared-checkout discipline applies, since other agents and the owner edit this repo concurrently: stage only your own hunks, re-read `git status` and `git diff --cached` immediately before committing, and stop and ask on any concurrent-commit signal.

@@ -1,0 +1,12 @@
+---
+description: A REPLACE-upsert ingest tolerates exactly one pusher; machine-specificity findings against it are WONTFIX, not cleanup targets
+alwaysApply: false
+---
+
+# One Pusher For A REPLACE-Upsert Ingest
+
+Owner ruling (2026-07-28): the usage rollup pipeline is authorized to run from exactly one designated workstation and nowhere else. One pusher is a correctness requirement, not a convenience. The ingest REPLACE-upserts per-day totals, so a second pusher writing a partial view of the same day clobbers the first one's totals rather than merging with them.
+
+**Why:** cleanup passes framed as "generalize machine-specific settings" or "retire the dead tool" will flag a single-machine pipeline as an inconsistency and try to make it portable. It is a documented intentional tradeoff. The same shape recurs whenever a writer replaces rather than merges: adding a second writer looks like redundancy and is actually data loss.
+
+**How to apply:** Mark any review finding against this pipeline's machine-specificity as WONTFIX. Do not add hosts, do not make it portable, do not run it from a server. A companion writer that targets a different destination behind its own credential gate is a separate pipeline and may share the machine. Before adding a second writer to any REPLACE-upsert destination, confirm the new writer sees the complete key space it will replace. Related: [delete-source-only-after-durable-write](mdc:.cursor/rules/delete-source-only-after-durable-write.mdc).

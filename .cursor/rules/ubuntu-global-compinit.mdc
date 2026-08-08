@@ -1,0 +1,12 @@
+---
+description: Ubuntu's /etc/zsh/zshrc runs a raw global compinit that prompts at login for any account not owning the Linuxbrew prefix; skip_global_compinit=1 is the escape hatch
+alwaysApply: false
+---
+
+# Ubuntu Global Compinit
+
+Ubuntu's `/etc/zsh/zshrc` runs a raw global `compinit` for every interactive shell. On a login shell the profile chain reaches `brew shellenv`, which prepends the Linuxbrew `site-functions` directory to `fpath` before that global `compinit` runs. Linuxbrew has a single owner, so on a multi-account host every other account sees those directories as insecure and gets the interactive "insecure directories and files … [y]/[n]" prompt at login. The owning account and all non-login shells are unaffected, which is why the problem looks account-specific and random.
+
+**Why:** single-owner Linuxbrew plus multiple accounts makes one account's completion directories foreign to every other account, and Ubuntu's global `compinit` is the only code path that *prompts* about it. oh-my-zsh calls `compinit -i`, which ignores the same finding silently.
+
+**How to apply:** Set `skip_global_compinit=1` in the repo's zsh env file, which is Ubuntu's own documented escape hatch, leaving oh-my-zsh as the sole `compinit` caller. Do not remove it, and do not try to fix the prompt with `chmod`, since `compaudit` flags foreign *ownership* and not just write bits. Accept the side effect: brew-installed completions stay ignored for non-owning accounts. If they are ever wanted there, `ZSH_DISABLE_COMPFIX=true` is the knob, not a permissions change.

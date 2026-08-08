@@ -1,0 +1,23 @@
+---
+description: Never delete a retry source artifact until the durable write that makes it obsolete has confirmed
+alwaysApply: true
+---
+
+# Delete Source Only After Durable Write
+
+Correction Guy finding (2026-08-01) on a usage push script: exported CSV files
+were deleted immediately after `readFile`, before the parse and the POST. A
+later failure lost the only retry source. The docs claiming it "deletes after
+read" described the wrong boundary.
+
+**Why:** In-memory bytes die with the process. The on-disk export is the
+retryable source until the server has accepted and confirmed the REPLACE-upsert.
+
+**How to apply:** Parse and POST first. Delete local and remote leftovers only
+on the success path after ingest is confirmed, and keep them on a dry run.
+Never delete inside the export or read helper before the durable write
+finishes. Do not add proof or test escapes to a REPLACE writer that let it skip
+required accounts, since a partial push wipes the totals of every account it
+omitted. Prove the cleanup path with extracted helpers and source assertions
+rather than by weakening the live script. Related:
+[single-pusher-for-replace-upsert](mdc:.cursor/rules/single-pusher-for-replace-upsert.mdc).

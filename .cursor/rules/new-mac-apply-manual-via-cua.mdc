@@ -1,0 +1,37 @@
+---
+description: New Mac one-shot install.sh; outcomes-not-stack; OS-prompt residue; Kanata opt-in via enable --safe
+alwaysApply: true
+---
+
+# New Mac Apply Manual Via Cua
+
+**One-shot is the only New Mac UX.** Fresh Mac: paste one command from [anaclumos/sunghyun.nix](https://github.com/anaclumos/sunghyun.nix) `install.sh`. Never instruct the owner to run follow-up steps the script can automate (no “then run post-switch”, no “sign in then re-run” as the primary path).
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/anaclumos/sunghyun.nix/main/install.sh | bash
+```
+
+Rename note (owner decision, executed 2026-08-08): the private `anaclumos/sunghyun-os` repo was deleted and recreated as the public `anaclumos/sunghyun.nix` from an audited tree with fresh history; the binary is `sunghyun` and env vars are `SUNGHYUN_*` (not `SUNGHYUN_OS_*`). `install.sh` also detects Linux (Determinate Nix + standalone `home-manager switch --flake .#sc@linux`, headless-safe). Historical `sunghyun-os` command names below in the owner-arc paragraph are kept verbatim as history.
+
+**Why (consolidated owner arc, 2026-08-07):** the design went through several same-day owner escalations; only the final state is binding. (1) Nix-first mandate, then ground-up escalation: nix-darwin/Home Manager owns everything declarative (defaults, plists, dotfiles, packages, Touch ID sudo via `security.pam.services.sudo_local`); the flake builds and ships the `sunghyun-os` binary itself (buildRustPackage + stable `/usr/local/bin` copy for TCC path stability); the legacy `bootstrap` subcommand is deleted. (2) Outcomes reframing: the spec is `OUTCOMES.md` desired results, not tools; stack loyalty is void. Per-outcome evaluation picked **Karabiner-Elements** (declarative karabiner.json via Home Manager, no root, mature supervision, fails to "no remap" not "no keys") as the primary keyboard engine; **Kanata is the opt-in alternative** (`SUNGHYUN_OS_KEYBOARD_ENGINE=kanata`), pinned ≥ 1.12.0 (grab-recovery fix), daemon flake-default off, enabled only via `sunghyun-os kanata enable --safe`. (3) An intermediate "CUA-instruction gates, opt-in except bootstrap" design (agent + cua-driver driving Settings) was built and then **superseded the same day**: verified against the full nix-darwin manual, TCC grants / dext approval / App Store sign-in have no non-MDM declarative path, and the owner settled the residue policy in his own words. "For TCC, if you open the window and prompt me, I can handle it. For Apple ID, it'll be set during Mac Setup, otherwise gracefully skip."
+
+**Final residue policy (owner 2026-08-07, settled):**
+
+- **TCC (Input Monitoring, Accessibility, dext approval):** the sanctioned surface is **open-window-and-poll**. Trigger the OS's own prompt or open the exact Settings pane (`x-apple.systempreferences` deep links), poll for the grant with a sane timeout, proceed when granted, and degrade gracefully (skip-not-fail, converge on next switch) on timeout. No instruction text, no "press Enter", no agent-driven clicking. Allowed in `install.sh` and in `sunghyun kanata enable --safe` alike. (2026-08-08 addendum: macOS 27 gates the Accessibility toggle itself behind Touch ID/password, so an unattended agent cannot flip it even via cua-driver; the toggle is a legitimate owner surface.)
+- **Apple ID / mas:** assume Setup Assistant handled sign-in. If signed out, mas apps skip gracefully (never block, loop, or instruct) and converge on a later switch. That is why mas lives in a non-fatal `postActivation` script rather than `homebrew.masApps`, which hard-fails `brew bundle` when signed out.
+- **Administration dialogs (measured on a pristine macOS 26 guest, 2026-08-08):** a first boot raises two blocking dialogs titled "Terminal would like to administer your computer", one while the Determinate installer creates the encrypted `/nix` APFS volume and one during nix-darwin activation. macOS raises them against the responsible app (whichever terminal ran the one-liner), so nothing in the repo suppresses them and no installer flag avoids them. Allow-or-deny clicks, no typing. A second run on the same machine raised neither, but it also had no volume to create and no activation work, so that is an observation, not proof the grant persists.
+- **Cursor Agent sign-in (2026-08-08):** installing `cursor-agent` is declarative (official `cursor-cli` Homebrew cask on macOS, nixpkgs `cursor-cli` on Linux) and `sunghyun verify` checks the binary, but authenticating it is not: `agent login` is browser OAuth and the only alternative is a dashboard `CURSOR_API_KEY`. Both are credentials a script must not invent, the same class as the Apple ID. Install, then let the owner's existing session take over. There is no unattended "Cursor Agent GUI continuation" step, and the superseded CUA gate framework is not coming back.
+- Do **not** degrade an outcome just to dodge a one-time TCC toggle; prefer TCC-free native mechanisms only when genuinely equal or better.
+
+**How to apply:**
+
+1. **Only entry:** the curl one-liner. A first boot costs one sudo password plus the two administration Allow clicks above (2026-08-08 proof run: exit 0, `sunghyun verify` ok=15 skipped=3 failed=0, idempotent second run); everything between them is unattended. It installs Xcode CLT, Determinate Nix (`--no-confirm`), clones sunghyun.nix, `darwin-rebuild switch`, then `sunghyun post-switch` (open-and-poll surfaces). Headless: `SUNGHYUN_HEADLESS=1` (skips are not failures). Linux: same one-liner; Determinate Nix + `home-manager switch --flake .#sc@linux`, no GUI steps.
+2. **Never** print “you should run X next” when the script can open Settings and poll. Human surfaces: password/Touch ID dialogs, the system's own administration Allow dialogs, the one-time toggles in windows the system opened, the Apple ID, and Cursor Agent sign-in.
+3. Keyboard outcomes ship as `assets/karabiner.json` (Home Manager `home.file`); `karabiner-elements` installs as a cask with `onActivation.cleanup = "none"` (its uninstall script would purge the shared DriverKit files). Hyper+J → `sunghyun open-default-browser`.
+4. **Kanata (opt-in engine only):** flake LaunchDaemon default off; require kanata ≥ 1.12.0; enable only via `sunghyun kanata enable --safe` (VirtualHID + mechanical passthrough/full proofs + automatic rollback; Input Monitoring via open-pane-and-poll). Emergency: `sunghyun kanata disable`. Opt-in via `SUNGHYUN_KEYBOARD_ENGINE=kanata`.
+5. nix-darwin executes only known activation hooks (`preActivation`/`extraActivation`/`postActivation`); arbitrary `system.activationScripts.<name>` entries are silently ignored.
+6. cua-driver remains a dev/debug toolbox item, **not** a product dependency; the CUA gate framework (`instructions/gates/`, `--gates`, auto-gates env) is deleted.
+7. **Verification:** install runs `sunghyun verify` (asserts outcomes, not implementations). Apply agents must not self-certify GUI surfaces.
+8. Do **not** copy capture-host identity onto the live machine. Skip rows for apps/hardware not present.
+9. Secrets via dotenvx only when that surface is mandated. Never invent Apple ID passwords; open UI and poll.
+10. Never `brew uninstall --cask karabiner-elements` (deletes DriverKit).

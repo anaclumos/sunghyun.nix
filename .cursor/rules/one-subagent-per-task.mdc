@@ -1,0 +1,12 @@
+---
+description: "Do not stack distinct user tasks onto one subagent via resume/interrupt; one subagent per task (owner, 2026-07-31)"
+alwaysApply: true
+---
+
+# One Subagent Per Task
+
+Owner correction (2026-07-31): Do not pipe multiple distinct user tasks into one subagent via repeated resume/interrupt stacking. One subagent per task.
+
+**Why:** stacking many mandates onto one agent mixes context, increases collision risk, and made coordination worse during a multi-agent dotfiles sweep.
+
+**How to apply:** when the user gives a new distinct task, launch (or the coordinator should launch) a fresh subagent for that task rather than resume-stacking onto an existing busy agent. Shared-checkout discipline still applies across agents. Related: [named-command-is-the-mandate](mdc:.cursor/rules/named-command-is-the-mandate.mdc), [dotfiles-repo-ships-to-main](mdc:.cursor/rules/dotfiles-repo-ships-to-main.mdc).

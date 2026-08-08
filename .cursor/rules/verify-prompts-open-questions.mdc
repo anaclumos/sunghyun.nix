@@ -1,0 +1,12 @@
+---
+description: Verification juries get open questions, never "try to refute" cues; AGENTS.md review rules beat tool built-in refute patterns
+alwaysApply: false
+---
+
+# Verify Prompts Open Questions
+
+Correction (2026-07-28): a multi-agent audit was stopped because its verify stage told jurors to "try to REFUTE" each finding and to default to refuted=true when uncertain, and fed the author's own hypotheses into the reviewer pool. That violates the AGENTS.md Reviews rules: audit subjects are phrased as open questions, never asserted conclusions, and reviewers get no steering in either direction.
+
+**Why:** Some tools document an "adversarial verify / default to refuted" pattern, so a well-meaning agent will reproduce the violation from tool docs. When tool guidance and AGENTS.md conflict, AGENTS.md wins.
+
+**How to apply:** Verification prompts ask "is this claimed issue genuine and accurately stated?" with free-roaming read-only investigation and no default verdict. Keep the author's candidate findings out of finder pools entirely; findings the author already verified firsthand (observed command output) need no jury. One fresh reviewer per round. Related: [named-command-is-the-mandate](mdc:.cursor/rules/named-command-is-the-mandate.mdc).

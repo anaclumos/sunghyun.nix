@@ -1,0 +1,20 @@
+---
+description: Shape of a Linux memory-protection stack so no single process crashes a shared dev box, and how to prove a memory cap actually fires
+alwaysApply: false
+---
+
+# Linux OOM Protection Stack
+
+Applied 2026-07-21 to a shared Hetzner dev box so that no single process or account could take the machine down. The stack has five parts, and each one covers a gap the others leave.
+
+- A large swapfile as the primary swap, created with `dd` rather than `fallocate` so the file is genuinely allocated, with any pre-existing swap partition demoted to overflow priority.
+- `zswap` with zstd and the shrinker on, enabled through a oneshot systemd unit. Recent kernels dropped the `zpool` parameter, since `zsmalloc` is now the only allocator, so a service file copied from an older box still works unchanged.
+- `earlyoom`, configured to kill before the kernel OOM killer does, with an avoid pattern anchored on the process names that must never be chosen: init, the ssh daemon, the network transport, the container runtime, the message bus, and earlyoom itself. Verify the pattern took by reading the live process cmdline and the journal's "Will avoid killing" line, not the config file.
+- Sysctls raising swappiness, the watermark scale factor, and the minimum free reserve, so reclaim starts early enough to keep the box responsive.
+- `OOMScoreAdjust` drop-ins for the ssh and network-transport units, plus a live write to each running process's `oom_score_adj` so the change applies without a restart.
+
+Per-job caps are the part that actually contains a runaway. `systemd-run --scope -p MemoryMax=… -p MemorySwapMax=0` works from root, and the same command with `--user` works unprivileged because user slices have cpu, memory and pids delegated.
+
+**Why:** without per-job caps the whole stack only decides who dies after the box is already thrashing. The cap turns "the machine froze" into "one command exited 137".
+
+**How to apply:** Prove the cap with a real allocator. `tail /dev/zero` is not a valid OOM hog on current coreutils, because it streams NULs to stdout without growing, so the cap never fires and the test just times out at exit 124, which reads like a broken cap. Allocate for real instead, for example a one-gigabyte `bytearray` under a 256 MB cap, and confirm the kill by exit 137 plus a `dmesg` line naming `constraint=CONSTRAINT_MEMCG` and the scope. Always wrap the hog in `timeout`, since a failed cap otherwise runs away on the very machine the stack is meant to protect. Reboot survival is a separate claim: check swap, zswap parameters and the earlyoom service after the next planned reboot before asserting it. Related: [never-restart-your-own-ingress](mdc:.cursor/rules/never-restart-your-own-ingress.mdc), [report-live-state-not-landed-code](mdc:.cursor/rules/report-live-state-not-landed-code.mdc).

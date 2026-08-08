@@ -1,0 +1,39 @@
+---
+description: Every brew invocation resets the caller's sudo timestamp, so a keep-alive ticket cannot survive an unattended run that touches Homebrew
+alwaysApply: false
+---
+
+# Every brew Invocation Kills The Sudo Ticket
+
+`brew` unconditionally invalidates the caller's sudo timestamp. From
+`brew.sh` in the Homebrew library:
+
+```
+# Reset sudo timestamp to avoid running unauthorized sudo commands
+if [[ -n "${SUDO}" ]]
+then
+  "${SUDO}" --reset-timestamp 2>/dev/null || true
+fi
+```
+
+No guard, no opt-out, no env var. Bisected live in a clean macOS 26.6.1 VM on
+2026-08-08: ticket VALID after `sudo -v`, VALID after `brew --version` (that
+one short-circuits earlier), DEAD after `brew update --force --quiet`.
+
+**Why it matters:** the standard "authenticate once, then refresh with
+`sudo -n true` every 60 s" keep-alive cannot survive this. The keep-alive
+itself is fine (measured VALID at t+5min and t+6min, past the 5-minute
+`timestamp_timeout`), but nothing can re-mint a ticket after `-k` without the
+password again. Any unattended script that runs `brew` and then needs root
+will stop on a second password prompt. The Homebrew *installer*'s
+`trap '/usr/bin/sudo -k' EXIT` is a red herring; it is guarded by
+`! sudo -n -v` and does not fire when a ticket is held.
+
+**How to apply:** for a one-password-then-unattended run that touches Homebrew
+(including `brew bundle` from nix-darwin activation), do not park the
+authorization in a ticket. After the single successful `sudo -v`, install a
+NOPASSWD drop-in under `/etc/sudoers.d/`, validate it with `visudo -cqf`
+before installing it 0440 root:wheel, and release it from an EXIT/INT/TERM
+trap; have the next run reinstall and release the same path so a SIGKILLed run
+cannot leak the grant. Implemented in this repo's `install.sh`
+(`sudo_grant_acquire` / `sudo_grant_release`, commit e3fa548).
