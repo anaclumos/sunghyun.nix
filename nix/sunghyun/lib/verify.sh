@@ -19,6 +19,7 @@ cmd_verify() {
   check_tokenmaxxing
   check_btop
   check_aside
+  check_macs_fan_control
   check_tailscale
   check_default_browser
   check_dock
@@ -148,6 +149,17 @@ check_aside() {
     step skipped aside "Aside absent (headless; the cask installs it on a GUI Mac)"
   else
     step failed aside "Aside missing; the aside cask should have installed it"
+  fi
+}
+
+# OUTCOMES.md row ap: Macs Fan Control present, installed by the macs-fan-control cask.
+check_macs_fan_control() {
+  if [ -d "/Applications/Macs Fan Control.app" ]; then
+    step ok macs_fan_control "/Applications/Macs Fan Control.app present"
+  elif is_headless; then
+    step skipped macs_fan_control "Macs Fan Control absent (headless; the cask installs it on a GUI Mac)"
+  else
+    step failed macs_fan_control "Macs Fan Control missing; the macs-fan-control cask should have installed it"
   fi
 }
 

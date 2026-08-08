@@ -182,6 +182,7 @@ in
       # karabiner-elements`; it deletes the DriverKit dext Kanata and KE share.
       "karabiner-elements"
       "linear"
+      "macs-fan-control"
       "slack"
       # Standalone GUI variant (system Network Extension), so MagicDNS DNS
       # config is native; the `tailscale` formula is the CLI-only tailscaled
