@@ -340,8 +340,8 @@ fn check_dock() -> StepReport {
     }
 }
 
-/// OUTCOMES.md row ad: hard disks on the Desktop, item info under each icon,
-/// labels to the right.
+/// OUTCOMES.md rows ad and ai: hard disks on the Desktop, item info under
+/// each icon, labels to the right, icons snapping to the grid.
 fn check_desktop_icons() -> StepReport {
     if cfg!(not(target_os = "macos")) || headless::is_headless() {
         return StepReport::skipped("desktop_icons", "Desktop icons need a GUI macOS session");
@@ -357,18 +357,27 @@ fn check_desktop_icons() -> StepReport {
         "com.apple.finder",
         "DesktopViewSettings.IconViewSettings.labelOnBottom",
     );
-    if disks && item_info.as_deref() == Some("true") && label_bottom.as_deref() == Some("false") {
+    let arrange_by = defaults_extract(
+        "com.apple.finder",
+        "DesktopViewSettings.IconViewSettings.arrangeBy",
+    );
+    if disks
+        && item_info.as_deref() == Some("true")
+        && label_bottom.as_deref() == Some("false")
+        && arrange_by.as_deref() == Some("grid")
+    {
         StepReport::ok(
             "desktop_icons",
-            "hard disks shown, item info on, labels on the right",
+            "hard disks shown, item info on, labels on the right, snap to grid",
         )
     } else {
         StepReport::failed(
             "desktop_icons",
             format!(
-                "hard disks={disks}, showItemInfo={}, labelOnBottom={}",
+                "hard disks={disks}, showItemInfo={}, labelOnBottom={}, arrangeBy={}",
                 item_info.unwrap_or_else(|| "unset".into()),
-                label_bottom.unwrap_or_else(|| "unset".into())
+                label_bottom.unwrap_or_else(|| "unset".into()),
+                arrange_by.unwrap_or_else(|| "unset".into())
             ),
         )
     }

@@ -11,12 +11,14 @@ let
   standardFunctionKeys = false;
   primaryUser = config.system.primaryUser;
 
-  # Item info and label position live inside
+  # Item info, label position and grid snapping live inside
   # com.apple.finder → DesktopViewSettings → IconViewSettings, and `defaults
   # write` has no key path, so the only faithful edit is read the dictionary,
-  # change the two leaves, write it back. `defaults export` (not `defaults
+  # change the three leaves, write it back. `defaults export` (not `defaults
   # read`) because the old-style text output loses every type: round-tripping
-  # it turns iconSize and the booleans into strings.
+  # it turns iconSize and the booleans into strings. arrangeBy "grid" is Snap
+  # to Grid; "none" is free placement and a sort key like "name" is the
+  # stronger Sort By, which the owner did not ask for.
   desktopViewConverge = pkgs.writeShellScript "sunghyun-desktop-view" ''
     set -u
     PATH=/usr/bin:/bin:/usr/sbin:/sbin
@@ -26,7 +28,8 @@ let
         | /usr/bin/plutil -extract "DesktopViewSettings.IconViewSettings.$1" raw -o - - 2>/dev/null
     }
 
-    if [ "$(read_flag showItemInfo)" = "true" ] && [ "$(read_flag labelOnBottom)" = "false" ]; then
+    if [ "$(read_flag showItemInfo)" = "true" ] && [ "$(read_flag labelOnBottom)" = "false" ] \
+      && [ "$(read_flag arrangeBy)" = "grid" ]; then
       exit 0
     fi
 
@@ -35,13 +38,14 @@ let
 
     if /usr/bin/defaults export com.apple.finder "$tmp" 2>/dev/null \
       && /usr/bin/plutil -extract DesktopViewSettings xml1 -o /dev/null "$tmp" 2>/dev/null; then
-      for pair in "showItemInfo true" "labelOnBottom false"; do
-        key="''${pair%% *}"
-        value="''${pair##* }"
+      for triple in "showItemInfo bool true" "labelOnBottom bool false" "arrangeBy string grid"; do
+        key="''${triple%% *}"
+        value="''${triple##* }"
+        type="''${triple#* }"; type="''${type%% *}"
         /usr/libexec/PlistBuddy -c \
           "Set :DesktopViewSettings:IconViewSettings:$key $value" "$tmp" >/dev/null 2>&1 \
           || /usr/libexec/PlistBuddy -c \
-            "Add :DesktopViewSettings:IconViewSettings:$key bool $value" "$tmp" >/dev/null 2>&1
+            "Add :DesktopViewSettings:IconViewSettings:$key $type $value" "$tmp" >/dev/null 2>&1
       done
       /usr/bin/plutil -extract DesktopViewSettings xml1 -o "$tmp.sub" "$tmp" 2>/dev/null || exit 0
       /usr/bin/defaults write com.apple.finder DesktopViewSettings "$(/bin/cat "$tmp.sub")" || exit 0
@@ -49,13 +53,13 @@ let
       # No Desktop view settings yet (fresh account): nothing to preserve, and
       # Finder fills the keys it is not given.
       /usr/bin/defaults write com.apple.finder DesktopViewSettings -dict-add IconViewSettings \
-        '<dict><key>showItemInfo</key><true/><key>labelOnBottom</key><false/></dict>' || exit 0
+        '<dict><key>showItemInfo</key><true/><key>labelOnBottom</key><false/><key>arrangeBy</key><string>grid</string></dict>' || exit 0
     fi
 
     # cfprefsd hands Finder a cached copy; without the restart Finder can flush
     # its old copy back over this write.
     /usr/bin/killall Finder 2>/dev/null || true
-    echo "sunghyun: desktop icons show item info with labels on the right"
+    echo "sunghyun: desktop icons show item info with labels on the right, snapped to grid"
   '';
 
   # KakaoTalk ships en/ja/ko and must run Korean whatever the system language
