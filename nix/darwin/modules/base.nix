@@ -15,6 +15,8 @@
 
   nix.enable = false;
 
+  system.tools.darwin-uninstaller.enable = false;
+
   programs.zsh.enable = true;
 
   environment.systemPackages = [ pkgs.tmux ];

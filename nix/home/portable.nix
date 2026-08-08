@@ -5,10 +5,13 @@ in
 {
   home.stateVersion = "26.05";
 
+  manual.manpages.enable = false;
+
   home.packages = [
     pkgs.btop
     pkgs.bun
     pkgs.dotenvx
+    pkgs.google-cloud-sdk
     pkgs.inngest
     (pkgs.callPackage ../pkgs/resend-cli.nix { })
   ];

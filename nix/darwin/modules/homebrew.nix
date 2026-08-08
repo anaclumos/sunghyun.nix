@@ -39,7 +39,6 @@
       "codexbar"
       "cursor"
       "cursor-cli"
-      "gcloud-cli"
       "ghostty"
       "iina"
       "itsycal"

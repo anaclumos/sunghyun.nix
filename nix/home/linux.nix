@@ -9,5 +9,5 @@
   ];
 
   programs.tokenmaxxing.enable = true;
-  programs.tokenmaxxing.package = inputs.tokenmaxxing.packages.${pkgs.system}.default;
+  programs.tokenmaxxing.package = inputs.tokenmaxxing.packages.${pkgs.stdenv.hostPlatform.system}.default;
 }

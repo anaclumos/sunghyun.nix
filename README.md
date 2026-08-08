@@ -48,9 +48,9 @@ One channel per distribution reality. Installing is the declarative outcome; eve
 | Channel | Members |
 |---|---|
 | Homebrew brews | fnm, gh, mas, mole, pscale, ripgrep, `getsentry/tools/sentry`, stripe-cli, tmux, vercel |
-| Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, gcloud-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, keka, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
+| Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, keka, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
 | `homebrew.masApps` | KakaoTalk, What Watt?, Amphetamine |
-| nixpkgs `home.packages` (macOS + Linux) | btop, bun, dotenvx, inngest, resend (`nix/pkgs/resend-cli.nix`) |
+| nixpkgs `home.packages` (macOS + Linux) | btop, bun, dotenvx, google-cloud-sdk, inngest, resend (`nix/pkgs/resend-cli.nix`) |
 | nixpkgs, Linux only | claude-code, codex, cursor-cli |
 | Manual | mint (Mintlify): `bun add --global mint`, lands in `~/.bun/bin`; Xcode from [Apple Beta](https://developer.apple.com/download/) |
 
@@ -60,6 +60,7 @@ One channel per distribution reality. Installing is the declarative outcome; eve
 - The published `resend-cli` npm tarball ships a self-contained `dist/cli.cjs`, so the derivation is a node wrapper around it, no npm build.
 - mint stays outside Nix: its keytar dependency fails to compile under nixpkgs clang and needs prebuilds, which bun installs. With activation hooks banned, converging it is a one-line manual step.
 - dotenvx comes from nixpkgs, never its third-party tap: on macOS 27 Homebrew refuses that formula while `/Applications/Xcode.app` trails the CLT (row as).
+- gcloud comes from nixpkgs `google-cloud-sdk`, never the `gcloud-cli` cask: the cask's install step hardcodes a Homebrew python path and dies asking for `gcloud config virtualenv create` ([homebrew-cask#241514](https://github.com/Homebrew/homebrew-cask/issues/241514), hit live 2026-08-08, it failed the whole switch). The nixpkgs package wraps gcloud with its own pinned python, so the extension-module virtualenv dance never happens; extra components go through `google-cloud-sdk.withExtraComponents`, not `gcloud components install`.
 - nixpkgs bun guarantees bun on a fresh machine; a curl-installed `~/.bun` wins on PATH and keeps its own upgrade channel.
 - On macOS the coding CLIs come from Homebrew only, never also from `home.packages`, so two binaries cannot fight over PATH order.
 - Xcode comes from Apple Beta, never the App Store (owner 2026-08-08): the App Store build trails the CLT (26.6 vs 27, row as), and beta downloads sit behind the owner's developer sign-in, so no channel here can carry them. `Xcode-beta.app` is installed live; `mas` cannot uninstall, so removing the old App Store copy stays manual.
@@ -149,7 +150,7 @@ Everything here is a desired result, not a stack (owner reframing 2026-08-07). I
 | aq | `build` upgrades the machine the Nix way, never topgrade | zsh `build`: `nix flake update`, then `darwin-rebuild switch` (or the Linux HM activate), then a pathspec-only `flake.lock` commit and push. Brew packages move via `onActivation.{autoUpdate,upgrade}` |
 | ar | Menu bar auto-hide is Never, desktop and fullscreen | `_HIHideMenuBar = false` plus `CustomUserPreferences` `AppleMenuBarVisibleInFullscreen` and controlcenter `AutoHideMenuBarOption = 3`; typed `controlcenter` writes ByHost only and cannot reach that domain |
 | as | OrbStack, dotenvx, Vercel, pscale, Stripe CLIs present | Casks/brews where the vendor channel works: `orbstack`, `vercel`, `pscale`, `stripe-cli`. dotenvx from nixpkgs: its only brew source is a third-party tap that macOS 27 Homebrew refuses while Xcode trails the CLT |
-| at | gcloud, sentry, inngest, mint, resend CLIs present | Cask `gcloud-cli`; tap formula `getsentry/tools/sentry` with the `sentry-cli` redirect alias; nixpkgs `bun` and `inngest`; `resend` from `nix/pkgs/resend-cli.nix`. mint is a manual `bun add --global mint` (installed live 2026-08-08): keytar needs prebuilds nixpkgs clang cannot build, and activation hooks are banned, so no machinery converges it |
+| at | gcloud, sentry, inngest, mint, resend CLIs present | nixpkgs `google-cloud-sdk` (the `gcloud-cli` cask is broken, see [Packages](#packages)); tap formula `getsentry/tools/sentry` with the `sentry-cli` redirect alias; nixpkgs `bun` and `inngest`; `resend` from `nix/pkgs/resend-cli.nix`. mint is a manual `bun add --global mint` (installed live 2026-08-08): keytar needs prebuilds nixpkgs clang cannot build, and activation hooks are banned, so no machinery converges it |
 
 ## Design notes
 
@@ -164,6 +165,8 @@ Choices the code cannot explain by itself.
 | `nix/darwin/modules/hammerspoon.nix` | `KeepAlive.SuccessfulExit = false` relaunches a crash and respects a deliberate quit |
 | `nix/darwin/modules/home.nix` | karabiner.json ships read-only via `home.file.source` and stays the sole source of truth; Karabiner-Elements live-reloads it and refuses GUI edits against it |
 | `nix/hammerspoon.nix` | The dark-toggle JXA sits in a `[=[ ]=]` Lua long string because the ObjC signature arrays contain `]]`, which terminates a plain `[[` string early |
+| `nix/home/portable.nix` | `manual.manpages.enable = false`: Home Manager's manual build emits the "options.json references a store path without a proper context" eval warning ([home-manager#7935](https://github.com/nix-community/home-manager/issues/7935), open); the manpage is the only thing in this tree that instantiates it. Re-enable once [#8942](https://github.com/nix-community/home-manager/pull/8942) lands |
+| `base.nix` | `system.tools.darwin-uninstaller.enable = false`: the uninstaller embeds its own doc-bearing darwin system, the other carrier of the same options.json warning, and this repo bootstraps by cloning, so an uninstaller script in PATH earns nothing |
 
 ## License
 
