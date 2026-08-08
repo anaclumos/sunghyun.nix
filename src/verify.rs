@@ -40,6 +40,8 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_binary_features());
     steps.push(check_virtualization());
     steps.push(check_cursor_agent());
+    steps.push(check_coding_cli("codex", "codex", "codex"));
+    steps.push(check_coding_cli("claude", "claude", "claude-code"));
     steps.push(check_ime_mapping(&config));
     steps.push(check_apps(&config));
     steps.push(check_tiles());
@@ -120,6 +122,45 @@ fn check_cursor_agent() -> StepReport {
         None => StepReport::failed(
             "cursor_agent",
             "cursor-agent missing; the cursor-cli cask (macOS) / nixpkgs cursor-cli (Linux) should have installed it",
+        ),
+    }
+}
+
+/// OUTCOMES.md row v: Codex and Claude Code CLIs present. macOS installs them
+/// through the official `codex` and `claude-code` Homebrew casks declared in
+/// the flake; Linux gets the same-named nixpkgs packages from the portable
+/// layer. The package/cask token and the binary name differ for Claude Code.
+fn check_coding_cli(id: &'static str, binary: &str, package: &str) -> StepReport {
+    let found = ["/opt/homebrew/bin", "/usr/local/bin"]
+        .iter()
+        .map(|d| format!("{d}/{binary}"))
+        .find(|p| std::path::Path::new(p).exists())
+        .or_else(|| {
+            Command::new("sh")
+                .args(["-c", &format!("command -v {binary} 2>/dev/null")])
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+                .filter(|s| !s.is_empty())
+        });
+    match found {
+        Some(path) => StepReport::ok(id, format!("{binary} present ({path})")),
+        None if headless::is_headless() => StepReport::skipped(
+            id,
+            format!("{binary} not on PATH (headless; the portable layer installs it on the next switch)"),
+        ),
+        None if cfg!(target_os = "macos")
+            && !std::path::Path::new("/opt/homebrew/bin/brew").exists() =>
+        {
+            StepReport::skipped(
+                id,
+                format!("Homebrew absent, so the {package} cask could not install yet; converges next switch"),
+            )
+        }
+        None => StepReport::failed(
+            id,
+            format!("{binary} missing; the {package} cask (macOS) / nixpkgs {package} (Linux) should have installed it"),
         ),
     }
 }
