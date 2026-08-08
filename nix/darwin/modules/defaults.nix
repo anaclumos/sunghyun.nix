@@ -11,6 +11,9 @@ in
     NSGlobalDomain = {
       "com.apple.keyboard.fnState" = standardFunctionKeys;
     };
+    # Bare fn tap only; fn-as-modifier chords ride HIDFKeyMode, not this key.
+    # A running session keeps the old tap behaviour until the next login.
+    hitoolbox.AppleFnUsageType = "Show Emoji & Symbols";
     # 0 = when space allows, 1 = always, 2 = never.
     menuExtraClock.ShowDate = 2;
     CustomUserPreferences = {

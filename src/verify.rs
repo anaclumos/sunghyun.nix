@@ -47,6 +47,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_launcher(&config));
     steps.push(check_keyboard_engine());
     steps.push(check_fn_state());
+    steps.push(check_fn_tap());
     steps.push(check_kanata_config(&config));
     steps.push(check_hushlogin());
     steps.push(check_spotlight());
@@ -379,6 +380,45 @@ fn check_fn_state() -> StepReport {
         ),
         Err(crate::error::ActionError::Skipped(m)) => StepReport::skipped("fn_state", m),
         Err(e) => StepReport::failed("fn_state", e.to_string()),
+    }
+}
+
+/// OUTCOMES.md row u: a bare fn tap opens the Emoji & Symbols picker.
+/// AppleFnUsageType governs the bare tap only; the fn+F-row inversion rides
+/// HIDFKeyMode (check_fn_state), so the two checks cannot collide.
+fn check_fn_tap() -> StepReport {
+    if !cfg!(target_os = "macos") {
+        return StepReport::skipped("fn_tap", "fn tap behaviour is macOS only");
+    }
+    if headless::is_headless() {
+        return StepReport::skipped("fn_tap", "fn tap check skipped (headless; no keyboard UI)");
+    }
+    let output = Command::new("/usr/bin/defaults")
+        .args(["read", "com.apple.HIToolbox", "AppleFnUsageType"])
+        .output();
+    match output {
+        Ok(o) if o.status.success() => {
+            let value = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if value == "2" {
+                StepReport::ok(
+                    "fn_tap",
+                    "bare fn tap opens Emoji & Symbols (AppleFnUsageType=2)",
+                )
+            } else {
+                StepReport::failed(
+                    "fn_tap",
+                    format!(
+                        "AppleFnUsageType={value}; expected 2 (Show Emoji & Symbols); darwin-rebuild switch declares it"
+                    ),
+                )
+            }
+        }
+        // Missing key is the OS default, which already shows Emoji & Symbols.
+        Ok(_) => StepReport::ok(
+            "fn_tap",
+            "AppleFnUsageType unset; macOS defaults the bare fn tap to Emoji & Symbols",
+        ),
+        Err(e) => StepReport::failed("fn_tap", format!("defaults read AppleFnUsageType: {e}")),
     }
 }
 
