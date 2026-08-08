@@ -135,7 +135,7 @@
     }
   ];
 
-  defaultBrowserBundleId = "company.thebrowser.dia";
+  defaultBrowserBundleId = "at.studio.AsideBrowser";
 
   terminalAlias = {
     bundleId = "com.anaclumos.terminal-ghostty";

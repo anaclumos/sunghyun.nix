@@ -56,7 +56,7 @@ let
       "@tileActions@"
       "@appCases@"
       "@tileAliasCases@"
-      "@diaBundleId@"
+      "@browserBundleId@"
       "@terminalAliasBundleId@"
       "@terminalAliasTarget@"
       "@kanataLabel@"

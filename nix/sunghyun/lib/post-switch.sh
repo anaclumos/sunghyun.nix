@@ -233,11 +233,11 @@ gate_default_browser() {
     return
   fi
   if [ "$DRY_RUN" = true ]; then
-    step skipped default_browser "would ask macOS to make Dia the default browser"
+    step skipped default_browser "would ask macOS to make Aside the default browser"
     return
   fi
   local out
-  out="$(default_browser_converge "$DIA_BUNDLE_ID" 120)"
+  out="$(default_browser_converge "$BROWSER_BUNDLE_ID" 120)"
   step_from_outcome default_browser "$(case "$out" in skipped:*) printf '%s' "$out" ;; *) printf 'ok: %s' "$out" ;; esac)"
 }
 

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  self,
   ...
 }:
 let
@@ -130,8 +131,8 @@ in
     echo >&2 "sunghyun: converging top-row fn behaviour into IOHIDSystem"
     if ! launchctl asuser "$(id -u -- ${lib.escapeShellArg primaryUser})" \
       sudo --user=${lib.escapeShellArg primaryUser} -- \
-      /usr/local/bin/sunghyun fn-state apply \
-      --standard-function-keys ${lib.boolToString standardFunctionKeys}; then
+      ${lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.sunghyun} \
+      fn-state apply ${lib.boolToString standardFunctionKeys}; then
       echo >&2 "sunghyun: WARNING could not set HIDFKeyMode; the top row converges at next login"
     fi
 

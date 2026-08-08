@@ -187,7 +187,7 @@ cmd_default_browser() {
     status) jxa default-browser status ;;
     set)
       shift
-      local bundle_id="${1:-$DIA_BUNDLE_ID}" budget="${2:-120}"
+      local bundle_id="${1:-$BROWSER_BUNDLE_ID}" budget="${2:-120}"
       local out
       out="$(default_browser_converge "$bundle_id" "$budget")"
       case "$out" in

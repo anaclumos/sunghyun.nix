@@ -17,6 +17,7 @@ cmd_verify() {
   check_coding_cli claude claude claude-code
   check_tokenmaxxing
   check_dia
+  check_aside
   check_tailscale
   check_default_browser
   check_dock
@@ -107,6 +108,17 @@ check_dia() {
   fi
 }
 
+# OUTCOMES.md row ak: Aside present, installed by the aside cask.
+check_aside() {
+  if [ -d /Applications/Aside.app ]; then
+    step ok aside "/Applications/Aside.app present"
+  elif is_headless; then
+    step skipped aside "Aside absent (headless; the cask installs it on a GUI Mac)"
+  else
+    step failed aside "Aside missing; the aside cask should have installed it"
+  fi
+}
+
 # OUTCOMES.md row ag: Tailscale present so tailnet MagicDNS names resolve after
 # the owner signs in. The standalone app bundles daemon, GUI and CLI.
 check_tailscale() {
@@ -119,12 +131,12 @@ check_tailscale() {
   fi
 }
 
-# OUTCOMES.md row ab: Dia is the system default browser, so Hyper+J opens it.
+# OUTCOMES.md row ab: Aside is the system default browser, so Hyper+J opens it.
 check_default_browser() {
   local current
   current="$(default_browser_current)"
-  if [ "$current" = "$DIA_BUNDLE_ID" ]; then
-    step ok default_browser "http handler is Dia ($current)"
+  if [ "$current" = "$BROWSER_BUNDLE_ID" ]; then
+    step ok default_browser "http handler is Aside ($current)"
   elif [ -z "$current" ] || [ "$current" = unknown ]; then
     step skipped default_browser "LaunchServices reports no http handler"
   elif is_headless; then
