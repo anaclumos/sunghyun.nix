@@ -218,7 +218,7 @@
             ]
           },
           {
-            "description": "Top row: F4/F5/F6 are plain function keys, fn inverts them to Spotlight/dictation/Do Not Disturb",
+            "description": "Top row: F4/F6 are plain function keys and F5 is Control-M, fn inverts them to Spotlight/dictation/Do Not Disturb",
             "manipulators": [
               {
                 "type": "basic",
@@ -272,7 +272,7 @@
                   "key_code": "f5",
                   "modifiers": { "optional": ["caps_lock", "command", "control", "option", "shift"] }
                 },
-                "to": [{ "key_code": "f5", "modifiers": ["fn"] }]
+                "to": [{ "key_code": "m", "modifiers": ["left_control"] }]
               },
               {
                 "type": "basic",
