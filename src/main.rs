@@ -125,8 +125,8 @@ enum DefaultBrowserCmd {
     Status,
     /// Ask macOS to make an app the default; macOS raises its own confirmation panel
     Set {
-        /// Bundle id. Defaults to Dia.
-        #[arg(long, default_value = default_browser::DIA_BUNDLE_ID)]
+        /// Bundle id. Defaults to Aside.
+        #[arg(long, default_value = default_browser::ASIDE_BUNDLE_ID)]
         bundle_id: String,
         /// Seconds to wait for the confirmation panel to be answered
         #[arg(long, default_value_t = 120)]

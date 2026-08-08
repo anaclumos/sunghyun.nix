@@ -15,8 +15,8 @@ use crate::error::{ActionError, ActionResult};
 use crate::headless;
 use std::time::{Duration, Instant};
 
-/// Dia (The Browser Company). Homebrew cask `thebrowsercompany-dia`.
-pub const DIA_BUNDLE_ID: &str = "company.thebrowser.dia";
+/// Aside (aside.com). Homebrew cask `aside`.
+pub const ASIDE_BUNDLE_ID: &str = "at.studio.AsideBrowser";
 
 /// Bundle id currently registered for `http`.
 pub fn current_handler() -> Option<String> {

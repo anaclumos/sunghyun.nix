@@ -147,6 +147,7 @@ in
     ];
     casks = [
       "1password"
+      "aside"
       "claude-code"
       "codex"
       "codexbar"

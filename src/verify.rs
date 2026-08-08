@@ -44,6 +44,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_coding_cli("claude", "claude", "claude-code"));
     steps.push(check_tokenmaxxing());
     steps.push(check_dia());
+    steps.push(check_aside());
     steps.push(check_tailscale());
     steps.push(check_default_browser());
     steps.push(check_dock());
@@ -269,6 +270,24 @@ fn check_dia() -> StepReport {
     }
 }
 
+/// OUTCOMES.md row ak: Aside present. Installed by the `aside` Homebrew
+/// cask, which is an official homebrew/cask token.
+fn check_aside() -> StepReport {
+    if cfg!(not(target_os = "macos")) {
+        return StepReport::skipped("aside", "Aside is macOS-only");
+    }
+    if std::path::Path::new("/Applications/Aside.app").exists() {
+        StepReport::ok("aside", "/Applications/Aside.app present")
+    } else if headless::is_headless() {
+        StepReport::skipped(
+            "aside",
+            "Aside absent (headless; the cask installs it on a GUI Mac)",
+        )
+    } else {
+        StepReport::failed("aside", "Aside missing; the aside cask should have installed it")
+    }
+}
+
 /// OUTCOMES.md row ag: Tailscale present so tailnet MagicDNS names can
 /// resolve after the owner signs in. The standalone app bundles daemon, GUI
 /// and CLI in one binary, so the app bundle is the whole install surface.
@@ -294,14 +313,14 @@ fn check_tailscale() -> StepReport {
     }
 }
 
-/// OUTCOMES.md row ab: Dia is the system default browser, so Hyper+J opens it.
+/// OUTCOMES.md row ab: Aside is the system default browser, so Hyper+J opens it.
 fn check_default_browser() -> StepReport {
     if cfg!(not(target_os = "macos")) {
         return StepReport::skipped("default_browser", "default browser is macOS-only");
     }
     match crate::default_browser::current_handler() {
-        Some(id) if id.eq_ignore_ascii_case(crate::default_browser::DIA_BUNDLE_ID) => {
-            StepReport::ok("default_browser", format!("http handler is Dia ({id})"))
+        Some(id) if id.eq_ignore_ascii_case(crate::default_browser::ASIDE_BUNDLE_ID) => {
+            StepReport::ok("default_browser", format!("http handler is Aside ({id})"))
         }
         Some(id) if headless::is_headless() => StepReport::skipped(
             "default_browser",
