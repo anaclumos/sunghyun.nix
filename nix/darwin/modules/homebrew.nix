@@ -141,8 +141,12 @@ in
   homebrew = {
     enable = true;
     onActivation = {
-      autoUpdate = false;
-      upgrade = false;
+      # Owner 2026-08-08: machine upgrades go through `build` → flake update +
+      # switch, not topgrade. autoUpdate refreshes the brew index; upgrade lets
+      # brew bundle move declared formulae/casks forward during activation
+      # (mas apps are not in this Brewfile, so they stay on the LaunchDaemon path).
+      autoUpdate = true;
+      upgrade = true;
       # Owner 2026-08-08: a definition deleted from this repo must be gone from
       # the machine on the next switch. Not "zap": its deeper clean needs Full
       # Disk Access for the process running brew, activation under sudo does
@@ -161,7 +165,6 @@ in
       "mole"
       "ripgrep"
       "tmux"
-      "topgrade"
       "kanata"
     ];
     casks = [
