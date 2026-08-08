@@ -69,7 +69,7 @@
             home-manager.lib.homeManagerConfiguration {
               pkgs = import nixpkgs {
                 system = linuxSystem;
-                # cursor-cli is unfree.
+                # cursor-cli and claude-code are unfree.
                 config.allowUnfree = true;
               };
               modules = [

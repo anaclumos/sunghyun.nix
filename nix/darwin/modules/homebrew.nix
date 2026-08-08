@@ -147,6 +147,8 @@ in
     ];
     casks = [
       "1password"
+      "claude-code"
+      "codex"
       "codexbar"
       "cursor"
       # Stays writable so `cursor-agent update` works, which a Nix store copy
