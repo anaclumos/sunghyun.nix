@@ -38,7 +38,7 @@ install.sh                                         ← only New Mac entry
 | Module | Role |
 |---|---|
 | `base.nix` | `system.stateVersion`, `system.primaryUser`, zsh, Determinate-safe `nix.enable = false`, Touch ID sudo |
-| `homebrew.nix` | Formulae/casks; `cleanup = "none"`; non-fatal mas via `postActivation` |
+| `homebrew.nix` | Formulae/casks; `cleanup = "uninstall"` (undeclared brews/casks removed on switch; `karabiner-elements` guarded by an eval assertion); non-fatal mas via LaunchDaemon |
 | `kanata.nix` | Root LaunchDaemon; `services.sunghyun.kanata.enable` (default **false**) |
 | `defaults.nix` | Only verified `system.defaults` keys |
 | `home.nix` | Home Manager files (darwin): karabiner.json, keyboard assets |
@@ -68,7 +68,7 @@ install.sh                                         ← only New Mac entry
 
 ## Safety
 
-- `homebrew.onActivation.cleanup = "none"`
+- `homebrew.onActivation.cleanup = "uninstall"`: what the repo stops declaring gets uninstalled; an eval assertion keeps `karabiner-elements` in the cask list so cleanup can never run its DriverKit-purging uninstall script. mas apps are exempt (`mas` has no uninstall; removal is manual)
 - Activation never waits on TCC/App Store and never prints “run post-switch next”
 - Kanata daemon default off; points at Homebrew `kanata` + HM `~/.config/sunghyun/kanata.kbd` when enabled later
 - `sunghyun kanata disable` records a `launchctl disable system/com.anaclumos.kanata` override; safe-enable clears it (a bare plist rename cannot re-arm the daemon on boot)

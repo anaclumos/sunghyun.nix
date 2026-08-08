@@ -42,6 +42,7 @@ cmd_verify() {
   check_accessibility
   check_input_monitoring
   check_fonts
+  check_brew_convergence
 
   print_report "$format" "$headless"
 }
@@ -521,5 +522,38 @@ check_fonts() {
     step skipped fonts "Sunghyun Sans not found yet (headless; the next switch installs it)"
   else
     step failed fonts "Sunghyun Sans missing from /Library/Fonts/Nix Fonts and ~/.nix-profile/share/fonts; darwin-rebuild/home-manager switch installs it"
+  fi
+}
+
+# OUTCOMES.md row am: anything Homebrew-managed that this repo does not declare
+# is absent from the machine. Casks only: `brew list --formula` includes
+# dependencies pulled in by declared formulae, so a formula comparison would
+# flag legitimate installs. The declared set is the generated Brewfile the
+# flake publishes at /etc/sunghyun/Brewfile for the active generation.
+check_brew_convergence() {
+  if [ "$(uname -s)" != Darwin ]; then
+    step skipped brew_convergence "Homebrew convergence is macOS-only"
+    return
+  fi
+  local brew=/opt/homebrew/bin/brew brewfile=/etc/sunghyun/Brewfile
+  if [ ! -x "$brew" ]; then
+    step skipped brew_convergence "Homebrew absent; the first switch installs it"
+    return
+  fi
+  if [ ! -r "$brewfile" ]; then
+    step skipped brew_convergence "$brewfile not published yet; the first switch on this generation materializes it"
+    return
+  fi
+  local declared installed missing undeclared
+  declared="$(awk -F'"' '$1 == "cask " { print $2 }' "$brewfile" | sort)"
+  installed="$("$brew" list --cask 2>/dev/null | awk NF | sort)"
+  missing="$(comm -23 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed") | tr '\n' ' ')"
+  undeclared="$(comm -13 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed") | tr '\n' ' ')"
+  if [ -n "${missing// /}" ]; then
+    step failed brew_convergence "declared casks not installed: ${missing% }; darwin-rebuild switch installs them"
+  elif [ -n "${undeclared// /}" ]; then
+    step failed brew_convergence "undeclared casks installed: ${undeclared% }; cleanup = \"uninstall\" removes them on the next switch"
+  else
+    step ok brew_convergence "installed casks match the declared set ($(printf '%s\n' "$declared" | awk NF | wc -l | tr -d ' ') casks)"
   fi
 }

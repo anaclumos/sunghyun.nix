@@ -121,14 +121,33 @@ let
   '';
 in
 {
+  # With cleanup = "uninstall", deleting the karabiner-elements line would make
+  # the next activation run its cask uninstall script, which purges the shared
+  # DriverKit VirtualHID files Karabiner-Elements and Kanata both need, and a
+  # machine with no virtual device output eats every key including the
+  # on-screen keyboard. Removing it must be a build failure, never a switch.
+  assertions = [
+    {
+      assertion = lib.elem "karabiner-elements" (map (c: c.name) config.homebrew.casks);
+      message = "homebrew.casks must keep karabiner-elements: onActivation.cleanup = \"uninstall\" would run its cask uninstall script, which deletes the shared Karabiner DriverKit VirtualHIDDevice files and bricks the keyboard. If it truly has to go, handle the DriverKit daemon migration by hand first.";
+    }
+  ];
+
+  # The declared set, at the path verify reads. Not global.brewfile's env var:
+  # a shell opened before the switch would keep pointing at the previous
+  # generation's Brewfile, while /etc tracks the active generation.
+  environment.etc."sunghyun/Brewfile".text = config.homebrew.brewfile;
+
   homebrew = {
     enable = true;
     onActivation = {
       autoUpdate = false;
       upgrade = false;
-      # Never "uninstall"/"zap": the karabiner-elements cask uninstall script
-      # purges the shared DriverKit VirtualHID daemon files.
-      cleanup = "none";
+      # Owner 2026-08-08: a definition deleted from this repo must be gone from
+      # the machine on the next switch. Not "zap": its deeper clean needs Full
+      # Disk Access for the process running brew, activation under sudo does
+      # not hold FDA, and a failed zap strands the cask half-uninstalled.
+      cleanup = "uninstall";
       # Homebrew 6.x prompts y/n by default, which would stall root activation.
       extraEnv = {
         HOMEBREW_NO_ASK = "1";
