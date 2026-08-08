@@ -73,6 +73,9 @@ function run(argv) {
       })
       .join("\n");
   }
+  if (mode === "enabled") {
+    return "enabled=" + $.CGSIsSymbolicHotKeyEnabled(parseInt(argv[1], 10));
+  }
   if (mode !== "disable") {
     throw new Error("unknown hotkeys mode: " + mode);
   }

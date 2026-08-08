@@ -262,11 +262,21 @@ check_ime_mapping() {
   local abc korean
   abc="$(resolve_ime ABC || true)"
   korean="$(resolve_ime 2SetKorean || true)"
-  if [ -n "$abc" ] && [ -n "$korean" ]; then
-    step ok ime_map "ABC=$abc korean=$korean"
-  else
+  if [ -z "$abc" ] || [ -z "$korean" ]; then
     step failed ime_map "IME id mapping incomplete"
+    return
   fi
+  if is_headless; then
+    step ok ime_map "ABC=$abc korean=$korean (hotkey probe skipped headless)"
+    return
+  fi
+  # The Cmd-tap manipulators fire the system 'Select the previous input source'
+  # shortcut (symbolic hot key 60); if it is disabled the taps die silently.
+  if [ "$(jxa hotkeys enabled 60)" != "enabled=true" ]; then
+    step failed ime_map "symbolic hot key 60 (Select the previous input source) is disabled; Cmd taps cannot switch"
+    return
+  fi
+  step ok ime_map "ABC=$abc korean=$korean; system input-switch hotkey enabled"
 }
 
 check_apps() {
@@ -333,7 +343,7 @@ check_keyboard_engine() {
     "hyper+p preview|open preview" \
     "hyper+r linear|open linear" \
     "hyper+grave dark mode|toggle-dark-mode" \
-    "cmd tap = IME|input-source ABC" \
+    "cmd tap = IME|input_source_unless" \
     "cmd-shift-v clipboard|spacebar"; do
     name="${pair%%|*}"
     token="${pair#*|}"

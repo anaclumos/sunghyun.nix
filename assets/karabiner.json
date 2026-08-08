@@ -103,15 +103,27 @@
             "manipulators": [
               {
                 "type": "basic",
-                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "conditions": [
+                  { "type": "variable_if", "name": "hyper", "value": 1 },
+                  {
+                    "type": "input_source_unless",
+                    "input_sources": [{ "input_source_id": "^com\\.apple\\.keylayout\\.US$" }]
+                  }
+                ],
                 "from": { "key_code": "a", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source ABC" }]
+                "to": [{ "key_code": "spacebar", "modifiers": ["left_control"] }]
               },
               {
                 "type": "basic",
-                "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
+                "conditions": [
+                  { "type": "variable_if", "name": "hyper", "value": 1 },
+                  {
+                    "type": "input_source_unless",
+                    "input_sources": [{ "input_source_id": "^com\\.apple\\.inputmethod\\.Korean" }]
+                  }
+                ],
                 "from": { "key_code": "b", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source 2SetKorean" }]
+                "to": [{ "key_code": "spacebar", "modifiers": ["left_control"] }]
               },
               {
                 "type": "basic",
@@ -219,19 +231,33 @@
             ]
           },
           {
-            "description": "Left/Right Cmd tap = IME switch; hold = Cmd chords",
+            "description": "Left/Right Cmd tap = IME switch via the system ^Space shortcut; hold = Cmd chords. TISSelectInputSource from another process updates the menu extra without switching the focused app's input context (macOS 26/27), so the tap rides the OS's own 'Select the previous input source' hotkey instead; input_source_unless makes the toggle deterministic with exactly two enabled sources, and the 500ms per-manipulator alone-timeout accepts deliberate taps the 200ms global gate silently dropped",
             "manipulators": [
               {
                 "type": "basic",
+                "parameters": { "basic.to_if_alone_timeout_milliseconds": 500 },
+                "conditions": [
+                  {
+                    "type": "input_source_unless",
+                    "input_sources": [{ "input_source_id": "^com\\.apple\\.keylayout\\.US$" }]
+                  }
+                ],
                 "from": { "key_code": "left_command", "modifiers": { "optional": ["any"] } },
                 "to": [{ "key_code": "left_command", "lazy": true }],
-                "to_if_alone": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source ABC" }]
+                "to_if_alone": [{ "key_code": "spacebar", "modifiers": ["left_control"] }]
               },
               {
                 "type": "basic",
+                "parameters": { "basic.to_if_alone_timeout_milliseconds": 500 },
+                "conditions": [
+                  {
+                    "type": "input_source_unless",
+                    "input_sources": [{ "input_source_id": "^com\\.apple\\.inputmethod\\.Korean" }]
+                  }
+                ],
                 "from": { "key_code": "right_command", "modifiers": { "optional": ["any"] } },
                 "to": [{ "key_code": "right_command", "lazy": true }],
-                "to_if_alone": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source 2SetKorean" }]
+                "to_if_alone": [{ "key_code": "spacebar", "modifiers": ["left_control"] }]
               }
             ]
           },
