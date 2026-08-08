@@ -77,7 +77,7 @@ The zsh configuration is content in this repo (`assets/dotfiles/zsh/`).
 
 - Caps tap maximizes the window, Caps hold is Hyper (row a).
 - Hyper arrows / 1-4 / Enter tile, Hyper+W right three quarters, Hyper+C center, Hyper+V top-left (row b).
-- Hyper+J opens the OS default browser; H/I/K/L/M/N/P/R launch apps; D shows the desktop; F opens Mission Control (row c).
+- Hyper+J opens the OS default browser; H/I/K/L/M/N/P/R launch apps; D shows the desktop; E and F open Mission Control (row c).
 - L⌘ tap switches to ABC, R⌘ tap to 2-Set Korean; held they stay normal ⌘ chords (row d).
 - ⌘⇧V opens Spotlight clipboard history (row e). ⌘Space stays Apple Spotlight (row f).
 - Top row fires Apple hardware actions bare and function keys on fn, except F4/F5 (row o). A bare fn tap opens Emoji & Symbols (row u). Hyper+grave toggles light/dark appearance (row t).
@@ -103,7 +103,7 @@ Everything here is a desired result, not a stack (owner reframing 2026-08-07). I
 |---|---|---|
 | a | Caps tap = maximize; Caps hold = Hyper | karabiner.json variable-based Hyper; the tap emits ⌘⌃⌥⇧M, which Hammerspoon tiles to maximize |
 | b | Hyper tiling: halves, fourths, fullscreen, W right three quarters, C center, V top-left; fractions against the visible frame of the focused window's display | karabiner emits ⌘⌃⌥⇧ chords; `hs.hotkey.bind` runs `tile()` in the generated init.lua; geometry is inlined in `nix/hammerspoon.nix`; `screen:frame()` excludes menu bar and Dock |
-| c | Hyper app keys activate a running instance instead of starting a second; a missing app raises no dialog | karabiner `software_function.open_application` by bundle identifier (native since KE 15.0.19, installed 16.1.0); Hyper+J resolves the LaunchServices http handler via `hs.urlevent.getDefaultHandler` and focuses it |
+| c | Hyper app keys activate a running instance instead of starting a second; a missing app raises no dialog; D shows the desktop; E and F open Mission Control (E added by owner 2026-08-08) | karabiner `software_function.open_application` by bundle identifier (native since KE 15.0.19, installed 16.1.0); Hyper+J resolves the LaunchServices http handler via `hs.urlevent.getDefaultHandler` and focuses it; D emits F13, E and F emit ⌃Up, the system Mission Control chord |
 | d | L⌘ tap = ABC IME, R⌘ tap = 2-Set Korean; held = normal ⌘ chords | karabiner `to_if_alone` + lazy modifiers firing the system input-source shortcut (^Space, symbolic hot key 60) as a virtual HID chord, gated by `input_source_unless`; per-manipulator 500 ms timeout. Not `TISSelectInputSource`: out-of-process calls update the menu extra without switching the focused app's input context on macOS 26/27 |
 | e | ⌘⇧V = Spotlight clipboard history | karabiner sends virtual ⌘Space then ⌘4 as HID events, no shell hop and no TCC |
 | o | Top row: bare = Apple hardware actions, fn = function keys, except F4 (bare plain F4, fn Spotlight) and F5 (bare Control-M, fn dictation) | `NSGlobalDomain."com.apple.keyboard.fnState" = false` as the base state plus two karabiner rules for f4/f5, guarded by `variable_unless`. IOHIDSystem reads the preference at login only; the in-session converge is retired (2026-08-08), so a changed value applies at next login |
