@@ -8,9 +8,6 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// v1 limits: plain text only, in-memory+file ring buffer, no images/RTF, no global
-/// CGEvent tap capture daemon. Capture is pull-based when `clipboard capture` runs
-/// or when the history UI opens.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ClipEntry {
     pub text: String,
@@ -68,13 +65,7 @@ pub fn capture(config: &Config) -> ActionResult {
     if hist.entries.first().map(|e| e.text.as_str()) == Some(text.as_str()) {
         return Ok(());
     }
-    hist.entries.insert(
-        0,
-        ClipEntry {
-            text,
-            ts: now_ts(),
-        },
-    );
+    hist.entries.insert(0, ClipEntry { text, ts: now_ts() });
     hist.entries.truncate(config.clipboard.history_limit);
     save_history(&hist)
 }
@@ -91,7 +82,6 @@ pub fn show(config: &Config) -> ActionResult {
     }
 
     if headless::is_headless() {
-        // Headless-safe: print index + preview, no GUI picker
         for (i, e) in hist.entries.iter().enumerate() {
             let preview: String = e.text.chars().take(80).collect();
             println!("{i}\t{preview}");
@@ -128,9 +118,11 @@ pub fn paste_index(config: &Config, index: usize) -> ActionResult {
     }
     #[cfg(target_os = "macos")]
     {
-        // Simulate ⌘V via osascript
         let output = Command::new("osascript")
-            .args(["-e", r#"tell application "System Events" to keystroke "v" using command down"#])
+            .args([
+                "-e",
+                r#"tell application "System Events" to keystroke "v" using command down"#,
+            ])
             .output()
             .map_err(|e| ActionError::failed(format!("osascript paste: {e}")))?;
         if output.status.success() {
@@ -172,9 +164,7 @@ fn read_pasteboard() -> Result<String, ActionError> {
         let output = Command::new("xclip")
             .args(["-selection", "clipboard", "-o"])
             .output()
-            .or_else(|_| {
-                Command::new("wl-paste").output()
-            })
+            .or_else(|_| Command::new("wl-paste").output())
             .map_err(|e| ActionError::failed(format!("clipboard read: {e}")))?;
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     }
@@ -213,14 +203,15 @@ fn write_pasteboard(text: &str) -> ActionResult {
         if headless::is_headless() {
             Err(ActionError::skipped("clipboard write skipped (headless)"))
         } else {
-            Err(ActionError::skipped("clipboard write not implemented on this OS"))
+            Err(ActionError::skipped(
+                "clipboard write not implemented on this OS",
+            ))
         }
     }
 }
 
 #[cfg(target_os = "macos")]
 fn macos_pick_and_paste(hist: &ClipHistory) -> ActionResult {
-    // Simple choose-from-list via osascript; v1 UI.
     let labels: Vec<String> = hist
         .entries
         .iter()
@@ -262,7 +253,6 @@ end try"#
     paste_index(&cfg, idx)
 }
 
-/// Test helper: push an entry without reading the system pasteboard.
 pub fn push_text_for_test(config: &Config, text: &str) -> ActionResult {
     let mut hist = load_history();
     hist.entries.insert(

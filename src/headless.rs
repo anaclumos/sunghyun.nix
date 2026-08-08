@@ -5,7 +5,6 @@ thread_local! {
     static FORCED: Cell<Option<bool>> = const { Cell::new(None) };
 }
 
-/// Force headless mode for the current thread (tests / CLI `--headless`).
 pub fn force(value: bool) {
     FORCED.with(|c| c.set(Some(value)));
 }

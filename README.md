@@ -22,7 +22,7 @@ What it does (macOS):
 
 - Xcode CLT (noninteractive when the catalog allows)
 - Determinate Nix (`install --no-confirm`)
-- Clone/update this repo (`~/Developer/sunghyun.nix`) and the dotfiles repo (`~/Developer/configs`)
+- Clone/update this repo (`~/Developer/sunghyun.nix`), the only repo the run needs
 - `darwin-rebuild switch --flake .#auracomputer` (or `SUNGHYUN_HOST` / matching LocalHostName); the flake builds and ships the `sunghyun` binary
 - `sunghyun post-switch` (opens Settings panes for one-time grants, polls, skips on timeout)
 
@@ -44,12 +44,14 @@ Module map: [docs/nix-darwin.md](docs/nix-darwin.md).
 | `nix/darwin/modules/kanata.nix` | Root LaunchDaemon (**default off**; opt-in engine) |
 | `nix/darwin/modules/defaults.nix` | Pinned `system.defaults` |
 | `nix/darwin/modules/home.nix` | HM (darwin): karabiner.json, `~/.config/sunghyun/*` |
-| `nix/home/portable.nix` | HM (portable): hushlogin, `~/.zsh*` symlinks (darwin + linux) |
+| `nix/home/portable.nix` | HM (portable): hushlogin, vendored zsh dotfiles (darwin + linux) |
 | `nix/darwin/modules/sunghyun.nix` | Flake-built CLI + stable `/usr/local/bin` copy (TCC path) |
 
 ## Dotfiles wiring
 
-Home Manager owns the `~/.zshrc` / `~/.zshenv` / `~/.zprofile` / `~/.zlogin` **symlinks** (out-of-store, pointing into `~/Developer/configs/zsh/`); the [anaclumos/configs](https://github.com/anaclumos/configs) working copy owns the **content**. One canonical clone, ensured by `install.sh`; edits there apply immediately. There is no second managed clone (the pre-2026-08-08 `~/.local/share/sunghyun-os/dotfiles` clone is retired).
+The zsh configuration is **content in this repo** (`assets/dotfiles/zsh/`). Home Manager links `~/.zshenv` / `~/.zshrc` / `~/.zprofile` / `~/.zlogin` and `~/.config/zsh/{lib,rc,bin}` from the Nix store, so the files are read-only and no vendor installer can append to them behind the flake's back. `~/.zshenv` sets `ZSH_CONFIG_HOME=~/.config/zsh`; the rc files source `lib/` and `rc/` from there.
+
+Edit the dotfiles in `assets/dotfiles/zsh/` and `darwin-rebuild switch` (`z` opens this repo). There is no second repo and no working-copy dependency: the machine converges with nothing else cloned. `programs.zsh` stays off, since it would generate rc content and take ownership.
 
 ## CLI (runtime)
 

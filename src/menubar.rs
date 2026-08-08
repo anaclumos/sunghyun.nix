@@ -10,7 +10,6 @@ const CONTROL_CENTER_DONT_SHOW_IN_MENU_BAR: &str = "2";
 const CURSOR_APPLICATION_USER_KEY: &str =
     "src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser";
 
-/// Hide the Time Machine menu extra (Control Center + SystemUIServer).
 pub fn hide_time_machine() -> ActionResult {
     if headless::is_headless() {
         return Err(ActionError::skipped(
@@ -59,7 +58,6 @@ pub fn hide_time_machine() -> ActionResult {
     }
 }
 
-/// True when Time Machine is not set to show in the menu bar.
 pub fn is_time_machine_hidden() -> Result<bool, ActionError> {
     #[cfg(target_os = "macos")]
     {
@@ -95,7 +93,6 @@ pub fn is_time_machine_hidden() -> Result<bool, ActionError> {
     }
 }
 
-/// Hide Cursor's macOS menu bar tray (`systemTrayEnabled=false` in state.vscdb).
 pub fn hide_cursor_tray(home: &Path) -> ActionResult {
     if headless::is_headless() {
         return Err(ActionError::skipped(
@@ -126,7 +123,6 @@ pub fn hide_cursor_tray(home: &Path) -> ActionResult {
     }
 }
 
-/// True when Cursor's tray preference is off, or Cursor is not installed yet.
 pub fn is_cursor_tray_hidden(home: &Path) -> Result<bool, ActionError> {
     #[cfg(target_os = "macos")]
     {
@@ -156,10 +152,7 @@ fn run_defaults(args: &[&str]) -> ActionResult {
     if status.success() {
         Ok(())
     } else {
-        Err(ActionError::failed(format!(
-            "defaults {:?} failed",
-            args
-        )))
+        Err(ActionError::failed(format!("defaults {:?} failed", args)))
     }
 }
 
@@ -201,7 +194,6 @@ fn read_application_user(db: &Path) -> Result<Value, ActionError> {
 fn write_application_user(db: &Path, data: &Value) -> ActionResult {
     let serialized = serde_json::to_string(data)
         .map_err(|e| ActionError::failed(format!("serialize Cursor applicationUser: {e}")))?;
-    // Escape single quotes for sqlite string literal.
     let escaped = serialized.replace('\'', "''");
     let sql = format!(
         "UPDATE ItemTable SET value='{escaped}' WHERE key='{CURSOR_APPLICATION_USER_KEY}';"

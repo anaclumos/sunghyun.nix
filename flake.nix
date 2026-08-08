@@ -56,19 +56,12 @@
         };
     in
     {
-      # Primary host: the ONLY config that names a machine.
       darwinConfigurations.auracomputer = mkHost "auracomputer" ./nix/darwin/hosts/auracomputer.nix;
-
-      # Fallback for every other Mac. Keeps the machine's own name; install.sh
-      # resolves to this whenever LocalHostName has no matching host file.
       darwinConfigurations.default = mkHost "default" ./nix/darwin/hosts/default.nix;
 
-      # Standalone Home Manager for non-NixOS Linux hosts (Ubuntu servers,
-      # screenless devices). Portable layer only: no GUI, no darwin modules,
-      # headless-safe. One output per Linux system: the old single
-      # `sc@linux` hard-pinned x86_64-linux and simply could not activate on
-      # an aarch64 box. `sc@linux` stays as an x86_64 alias so older docs and
-      # muscle memory keep working; install.sh selects by `uname -m`.
+      # One output per Linux system, because a Home Manager configuration is
+      # built for a fixed platform: a single `sc@linux` could not activate on an
+      # aarch64 box. `sc@linux` stays as an x86_64 alias.
       homeConfigurations =
         let
           mkLinuxHome =
@@ -76,7 +69,7 @@
             home-manager.lib.homeManagerConfiguration {
               pkgs = import nixpkgs {
                 system = linuxSystem;
-                # cursor-cli (Cursor Agent) is unfree.
+                # cursor-cli is unfree.
                 config.allowUnfree = true;
               };
               modules = [
@@ -98,8 +91,6 @@
       packages.${system} = {
         default = self.darwinConfigurations.auracomputer.system;
         darwin-auracomputer = self.darwinConfigurations.auracomputer.system;
-        # The Rust CLI residue (gates, verify, kanata safe-enable, key actions)
-        # is built and shipped by the flake; install.sh never needs rustup/cargo.
         sunghyun = nixpkgs.legacyPackages.${system}.rustPlatform.buildRustPackage {
           pname = "sunghyun";
           version = "0.1.0";
@@ -112,17 +103,13 @@
         };
       };
 
-      # After Nix is installed: nix flake check
       checks.${system} = {
         darwin-eval = self.darwinConfigurations.auracomputer.system;
-        # The fallback config must keep evaluating: it is what every machine
-        # other than auracomputer activates.
         darwin-eval-default = self.darwinConfigurations.default.system;
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
 
-      # Convenience: nix run .#darwin-rebuild -- switch --flake .#auracomputer
       apps.${system}.darwin-rebuild = {
         type = "app";
         program = "${nix-darwin.packages.${system}.darwin-rebuild}/bin/darwin-rebuild";

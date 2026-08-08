@@ -9,7 +9,6 @@ pub struct SudoKeepAlive {
 }
 
 impl SudoKeepAlive {
-    /// No-op (dry-run / skipped privilege section).
     pub fn noop() -> Self {
         Self { keeper: None }
     }
@@ -108,9 +107,7 @@ fn spawn_keeper() -> Option<Child> {
 pub fn run_sudo_n(args: &[&str]) -> Result<(), String> {
     let mut cmd = Command::new("sudo");
     cmd.arg("-n").args(args).stdin(Stdio::null());
-    let output = cmd
-        .output()
-        .map_err(|e| format!("spawn sudo -n: {e}"))?;
+    let output = cmd.output().map_err(|e| format!("spawn sudo -n: {e}"))?;
     if output.status.success() {
         Ok(())
     } else {
@@ -139,9 +136,7 @@ pub fn run_root(args: &[&str]) -> Result<(), String> {
     }
     let mut cmd = Command::new("sudo");
     cmd.arg("-n").args(args).stdin(Stdio::null());
-    let output = cmd
-        .output()
-        .map_err(|e| format!("spawn sudo -n: {e}"))?;
+    let output = cmd.output().map_err(|e| format!("spawn sudo -n: {e}"))?;
     if output.status.success() {
         return Ok(());
     }
@@ -154,7 +149,10 @@ pub fn run_root(args: &[&str]) -> Result<(), String> {
             "sudo {args:?} needs a credential but no terminal is reachable: {stderr}"
         ));
     }
-    eprintln!("sudo: cached ticket unavailable; prompting once for {:?}", args[0]);
+    eprintln!(
+        "sudo: cached ticket unavailable; prompting once for {:?}",
+        args[0]
+    );
     let status = Command::new("sudo")
         .args(args)
         .status()

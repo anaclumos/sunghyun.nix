@@ -1,4 +1,3 @@
-# Host: auracomputer (Apple Silicon Mac, primaryUser sc)
 { ... }:
 {
   networking.hostName = "auracomputer";

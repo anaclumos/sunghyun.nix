@@ -1,10 +1,3 @@
-//! Residual gate machinery for `sunghyun post-switch`.
-//!
-//! The legacy imperative `bootstrap` subcommand is gone: nix-darwin +
-//! Home Manager own packages, files, defaults, and launchd. This module keeps
-//! only the manifest (skip lists, DriverKit URL, masApps mirror) and the sudo
-//! keep-alive shared by post-switch and `kanata enable --safe`.
-
 pub mod steps;
 pub mod sudo_keepalive;
 
@@ -42,7 +35,9 @@ mod tests {
     fn manifest_parse_includes_xcode() {
         let m = load_embedded_manifest();
         assert!(
-            m.mas_apps.iter().any(|a| a.id == 497799835 && a.name == "Xcode"),
+            m.mas_apps
+                .iter()
+                .any(|a| a.id == 497799835 && a.name == "Xcode"),
             "{m:?}"
         );
         assert!(m.mas_apps.iter().any(|a| a.name == "KakaoTalk"));
@@ -58,8 +53,8 @@ mod tests {
         assert!(assets::KANATA_KBD.contains("tile maximize"));
         assert!(assets::KANATA_KBD.contains("M-spc") && assets::KANATA_KBD.contains("M-4"));
         assert!(assets::KANATA_KBD.contains("open-default-browser"));
-        assert!(assets::KANATA_KBD.contains(
-            "HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh"
-        ));
+        assert!(
+            assets::KANATA_KBD.contains("HOME_DIR_PLACEHOLDER/.config/sunghyun/run-sunghyun.sh")
+        );
     }
 }

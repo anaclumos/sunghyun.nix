@@ -55,8 +55,8 @@ Engine evaluation (2026-08-07, per-outcome, no stack loyalty):
 | f | Spotlight: ⌘Space enabled; typing "terminal" launches Ghostty | symbolichotkeys id 64 patched imperatively (whole-dict `defaults write` would clobber other shortcuts — no safe Nix path); Terminal→Ghostty alias app via `sunghyun` | verify `check_spotlight`, `check_terminal_alias` |
 | g | Menu bar shows no date (Time Machine extra hidden; Cursor tray hidden) | nix-darwin `system.defaults.CustomUserPreferences` (systemuiserver); Cursor tray is app storage → `sunghyun` post-switch step | verify `check_menubar` |
 | h | `~/.hushlogin` present | Home Manager `home.file` | verify `check_hushlogin` |
-| i | Declared packages/apps present (nixpkgs + brews/casks + mas: Xcode, KakaoTalk, What Watt?, Amphetamine) | nix-darwin `homebrew.{brews,casks}` + `environment.systemPackages`; mas apps via the convergence LaunchDaemon in row r, never from `brew bundle` (which hard-fails when the App Store is signed out) | `darwin-rebuild switch` succeeds; verify `check_apps` |
-| j | zsh/dotfiles/runtimes configured | HM owns the `~/.zsh*` symlink wiring (out-of-store links into `~/Developer/configs/zsh/`, the single canonical clone; install.sh ensures it); content stays owned by anaclumos/configs; HM must never generate rc content (`programs.zsh` off); runtimes via nixpkgs/brew | shell loads; `~/.zshrc` resolves into `~/Developer/configs` |
+| i | Declared packages/apps present (nixpkgs + brews/casks, incl. CodexBar; mas: Xcode, KakaoTalk, What Watt?, Amphetamine) | nix-darwin `homebrew.{brews,casks}` + `environment.systemPackages`; mas apps via the convergence LaunchDaemon in row r, never from `brew bundle` (which hard-fails when the App Store is signed out) | `darwin-rebuild switch` succeeds; verify `check_apps` |
+| j | zsh/dotfiles/runtimes configured, with no second repo to clone | zsh content is vendored in this repo (`assets/dotfiles/zsh/`); HM links `~/.zsh{env,rc,profile,login}` and `~/.config/zsh/{lib,rc,bin}` from the store, so the files are read-only and no vendor installer can append to them; HM must never generate rc content (`programs.zsh` off); runtimes via nixpkgs/brew | shell loads; `~/.zshrc` resolves into `/nix/store`, and a machine with no other repo cloned still converges |
 | k | One-shot fresh-Mac bootstrap: single curl, sudo rarely (Touch ID via `security.pam.services.sudo_local`), zero babysitting | `install.sh` → Determinate Nix → `darwin-rebuild switch --flake` → `sunghyun post-switch` (opens Settings panes for one-time grants + polls) | fresh-machine run completes with ≤ the 3 known human toggles below |
 | m | Headless/VM runs degrade gracefully (skips are not failures) | `SUNGHYUN_HEADLESS=1` + Aqua-session detection everywhere | headless `verify` / `post-switch` exit 0 |
 | n | Everything idempotent and verifiable by outcome checks | `sunghyun verify` asserts outcomes, not implementation details | `sunghyun verify` exit 0 |
@@ -96,9 +96,8 @@ behind it.
 `cursor-agent`; it cannot authenticate it. `agent login` is a browser OAuth
 flow, and the only alternative is a `CURSOR_API_KEY` from the Cursor dashboard
 (<https://cursor.com/docs/cli/reference/authentication>). Both are credentials
-a script must not invent, which puts them in the same class as the Apple ID and
-the private `anaclumos/configs` clone: install, then let the owner's existing
-session take over. There is therefore no unattended "Cursor Agent GUI
+a script must not invent, which puts them in the same class as the Apple ID:
+install, then let the owner's existing session take over. There is therefore no unattended "Cursor Agent GUI
 continuation" step, and the superseded CUA gate framework is not coming back.
 
 Exactly three first-boot toggles remain, each in a window the system opens:

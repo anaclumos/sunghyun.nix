@@ -510,9 +510,10 @@ mod tests {
         });
         let plain = report.to_plain();
         assert_eq!(report.exit_code(), 0, "{plain}");
-        assert!(report.steps.iter().any(|s| {
-            s.id == "spotlight" && s.status == crate::status::StepStatus::Skipped
-        }));
+        assert!(report
+            .steps
+            .iter()
+            .any(|s| { s.id == "spotlight" && s.status == crate::status::StepStatus::Skipped }));
         assert!(
             report.steps.iter().any(|s| {
                 s.id == "accessibility"

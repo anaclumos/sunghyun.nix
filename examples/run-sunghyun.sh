@@ -1,7 +1,7 @@
 #!/bin/bash
-# Kanata LaunchDaemon runs as root (VirtualHID rootonly IPC). Root has no Aqua
-# session, so sunghyun would detect headless and skip IME/tile/open.
-# Re-run as the console user inside their GUI bootstrap namespace.
+# The Kanata daemon runs as root, which has no Aqua session, so sunghyun would
+# detect headless and skip IME/tile/open. Re-enter the console user's GUI
+# bootstrap namespace first.
 set -euo pipefail
 bin=/usr/local/bin/sunghyun
 if [[ ! -x $bin ]]; then

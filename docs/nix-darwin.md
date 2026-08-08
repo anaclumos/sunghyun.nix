@@ -8,7 +8,7 @@
 curl -fsSL https://raw.githubusercontent.com/anaclumos/sunghyun.nix/main/install.sh | bash
 ```
 
-`install.sh` installs Determinate Nix, clones this repo (plus `~/Developer/configs` for the dotfiles symlinks), runs `darwin-rebuild`, and runs `post-switch` (opens Settings panes for one-time grants, polls, skips on timeout). It never asks the human to run a follow-up command. Keyboard engine is Karabiner-Elements; the Kanata LaunchDaemon stays **disabled** unless explicitly opted in via `SUNGHYUN_KEYBOARD_ENGINE=kanata` + `kanata enable --safe`.
+`install.sh` installs Determinate Nix, clones this repo (the only repo it needs), runs `darwin-rebuild`, and runs `post-switch` (opens Settings panes for one-time grants, polls, skips on timeout). It never asks the human to run a follow-up command. Keyboard engine is Karabiner-Elements; the Kanata LaunchDaemon stays **disabled** unless explicitly opted in via `SUNGHYUN_KEYBOARD_ENGINE=kanata` + `kanata enable --safe`.
 
 On Linux the same script applies the portable Home Manager layer (`.#sc@linux`); no GUI steps, headless-safe.
 
@@ -31,7 +31,6 @@ install.sh                                         ← only New Mac entry
 | **install.sh** | One-shot orchestration (darwin + linux) |
 | **nix-darwin flake** | Declarative Mac state |
 | **sunghyun CLI** | OS-prompt surfaces + keyboard actions (invoked by install.sh) |
-| **anaclumos/configs** | zsh content (HM pins the `~/.zsh*` symlinks into its working copy) |
 | **anaclumos/nix** | Framework NixOS only |
 
 ## Module map
@@ -43,7 +42,7 @@ install.sh                                         ← only New Mac entry
 | `kanata.nix` | Root LaunchDaemon; `services.sunghyun.kanata.enable` (default **false**) |
 | `defaults.nix` | Only verified `system.defaults` keys |
 | `home.nix` | Home Manager files (darwin): karabiner.json, keyboard assets |
-| `../home/portable.nix` | Home Manager files (portable): `.hushlogin`, `~/.zsh*` symlinks |
+| `../home/portable.nix` | Home Manager files (portable): `.hushlogin`, zsh dotfiles from `assets/dotfiles/zsh` |
 | `sunghyun.nix` | Flake-built CLI + `/usr/local/bin` copy via `extraActivation` |
 | `hosts/auracomputer.nix` | Host naming |
 

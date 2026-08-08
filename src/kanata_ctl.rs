@@ -79,7 +79,10 @@ pub fn status() -> ActionResult {
     println!("pids={}", pids.join(","));
     println!("vhid_daemon_running={}", vhid_daemon_running());
     println!("vhid_dext_activated={}", vhid_dext_activated());
-    println!("vhid_output_device_present={}", vhid_output_device_present());
+    println!(
+        "vhid_output_device_present={}",
+        vhid_output_device_present()
+    );
     println!(
         "input_monitoring={}",
         if pids.is_empty() {
@@ -333,7 +336,11 @@ fn ensure_vhid_stack() -> ActionResult {
     if !vhid_daemon_running() {
         eprintln!("kanata: starting Karabiner-VirtualHIDDevice-Daemon…");
         // The pkg registers the daemon with ServiceManagement; kickstart it.
-        let _ = run_root(&["launchctl", "kickstart", &format!("system/{VHID_DAEMON_LABEL}")]);
+        let _ = run_root(&[
+            "launchctl",
+            "kickstart",
+            &format!("system/{VHID_DAEMON_LABEL}"),
+        ]);
         for _ in 0..20 {
             if vhid_daemon_running() {
                 break;
@@ -378,9 +385,9 @@ fn vhid_daemon_running() -> bool {
 pub fn vhid_dext_activated() -> bool {
     let out = Command::new("systemextensionsctl").arg("list").output();
     match out {
-        Ok(o) => String::from_utf8_lossy(&o.stdout)
-            .lines()
-            .any(|l| l.contains("org.pqrs.Karabiner-DriverKit-VirtualHIDDevice") && l.contains("activated")),
+        Ok(o) => String::from_utf8_lossy(&o.stdout).lines().any(|l| {
+            l.contains("org.pqrs.Karabiner-DriverKit-VirtualHIDDevice") && l.contains("activated")
+        }),
         Err(_) => false,
     }
 }
@@ -752,7 +759,9 @@ fn watchdog_recheck(log_marks: &[(PathBuf, u64)], settle: Duration) -> Result<()
         return Err(format!("fatal condition during watchdog window: {m}"));
     }
     if let Some(m) = find_marker(after_success, DEGRADED_MARKERS) {
-        return Err(format!("output backend degraded during watchdog window: {m}"));
+        return Err(format!(
+            "output backend degraded during watchdog window: {m}"
+        ));
     }
     Ok(())
 }

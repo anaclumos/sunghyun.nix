@@ -8,13 +8,10 @@ use std::process::Command;
 /// Apple symbolic hotkey id 64 = Show Spotlight search (⌘Space).
 pub const SPOTLIGHT_HOTKEY_ID: &str = "64";
 
-/// Bundle id for the thin Spotlight name alias that opens Ghostty.
 pub const TERMINAL_ALIAS_BUNDLE_ID: &str = "com.anaclumos.terminal-ghostty";
 
-/// Ghostty bundle id (open target for the terminal alias app).
 pub const GHOSTTY_BUNDLE_ID: &str = "com.mitchellh.ghostty";
 
-/// Restore Spotlight ⌘Space (enabled). Raycast no longer owns ⌘Space.
 pub fn restore_command_space() -> ActionResult {
     if headless::is_headless() {
         return Err(ActionError::skipped(
@@ -106,11 +103,7 @@ pub fn is_pasteboard_history_enabled() -> Result<bool, ActionError> {
             ));
         }
         let output = Command::new("/usr/bin/defaults")
-            .args([
-                "read",
-                "com.apple.Spotlight",
-                "PasteboardHistoryEnabled",
-            ])
+            .args(["read", "com.apple.Spotlight", "PasteboardHistoryEnabled"])
             .output()
             .map_err(|e| ActionError::failed(format!("defaults read PasteboardHistory: {e}")))?;
         if !output.status.success() {
@@ -161,9 +154,7 @@ pub fn install_terminal_ghostty_alias(home: &Path) -> ActionResult {
     #[cfg(not(target_os = "macos"))]
     {
         let _ = home;
-        Err(ActionError::skipped(
-            "terminal→Ghostty alias is macOS-only",
-        ))
+        Err(ActionError::skipped("terminal→Ghostty alias is macOS-only"))
     }
 }
 
@@ -299,9 +290,7 @@ fn write_terminal_alias_app(app: &Path) -> ActionResult {
 </plist>
 "#
     );
-    let exe = format!(
-        "#!/bin/bash\nexec /usr/bin/open -b {GHOSTTY_BUNDLE_ID} \"$@\"\n"
-    );
+    let exe = format!("#!/bin/bash\nexec /usr/bin/open -b {GHOSTTY_BUNDLE_ID} \"$@\"\n");
     let plist_path = contents.join("Info.plist");
     let exe_path = macos.join("terminal");
     let pkginfo = contents.join("PkgInfo");
@@ -355,8 +344,6 @@ mod tests {
         let home = dir.path();
         fs::create_dir_all(home.join("Applications")).unwrap();
         headless::clear_force();
-        // Force non-headless path for unit write (install still checks headless).
-        // Call writer directly:
         let app = terminal_alias_app_path(home);
         write_terminal_alias_app(&app).unwrap();
         assert!(terminal_alias_is_current(&app).unwrap());

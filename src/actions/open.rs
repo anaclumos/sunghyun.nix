@@ -19,7 +19,6 @@ pub fn open_target(config: &Config, target: &str) -> ActionResult {
     open_by_name(target)
 }
 
-/// Open the OS default HTTP(S) handler (no hardcoded browser bundle id).
 pub fn open_default_browser() -> ActionResult {
     #[cfg(target_os = "macos")]
     {
@@ -31,7 +30,6 @@ pub fn open_default_browser() -> ActionResult {
         if let Some(bundle_id) = macos_default_http_handler() {
             return open_bundle_id(&bundle_id);
         }
-        // Fallback: LaunchServices URL open uses the default handler.
         run_open(&["https://"])
     }
     #[cfg(target_os = "linux")]
@@ -40,7 +38,9 @@ pub fn open_default_browser() -> ActionResult {
     }
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
-        Err(ActionError::skipped("open-default-browser unsupported on this OS"))
+        Err(ActionError::skipped(
+            "open-default-browser unsupported on this OS",
+        ))
     }
 }
 

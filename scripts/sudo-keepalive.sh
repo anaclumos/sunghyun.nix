@@ -1,14 +1,4 @@
 # shellcheck shell=bash
-# Source from privileged setup/uninstall scripts:
-#   source "$(dirname "$0")/sudo-keepalive.sh"
-#   sudo_keepalive_start || exit 1
-#   trap sudo_keepalive_stop EXIT ERR INT TERM
-#
-# Pattern: interactive sudo -v once, then refresh with sudo -n every 60s.
-# Does not log or store the password.
-#
-# Keep-alive probes use sudo -n only. Destructive callers should use plain
-# sudo (or sudo_do) so a flaky timestamp can re-prompt instead of hard-failing.
 
 # Test the controlling terminal, not stdin: a piped or redirected stdin says
 # nothing about whether sudo can prompt, and sudo reads from /dev/tty.
@@ -25,9 +15,7 @@ sudo_keepalive_start() {
     return 1
   fi
 
-  # $$ is the sourcing shell (bash keeps $$ stable in subshells).
-  # || true so inherited set -e cannot kill the refresher when -n misses
-  # (e.g. tty_tickets / no controlling TTY in the background job).
+  # `|| true` so an inherited set -e cannot kill the refresher when -n misses.
   while true; do
     sudo -n true 2>/dev/null || true
     sleep 60
@@ -44,8 +32,8 @@ sudo_keepalive_stop() {
   fi
 }
 
-# Run a privileged command. Prefer a cached ticket via -n probe, then plain
-# sudo so a missing/expired cache can prompt once instead of hard-failing.
+# Plain sudo after the -n probe, so a missing or expired cache can prompt once
+# instead of hard-failing.
 sudo_do() {
   if sudo -n true 2>/dev/null; then
     sudo -n "$@"

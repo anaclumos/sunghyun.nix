@@ -1,29 +1,13 @@
-//! Virtualization detection: the single source of truth for "this machine is
-//! a VM" across the whole system (CLI reports and the mas convergence
-//! LaunchDaemon, which shells out to `sunghyun virt`).
-//!
-//! Owner policy (2026-08-08): a virtualization end-to-end demo skips the Mac
-//! App Store surface *by design*, not by timeout. Signing a throwaway guest
-//! into a real Apple Account is not something an e2e run may ever do, so mas
-//! must report a skip that names virtualization, never launch App Store, and
-//! never schedule background convergence.
-//!
-//! Signals (both read-only sysctls, no privileges, no GUI):
-//!   * `kern.hv_vmm_present` — 1 when a hypervisor is present. Set by the
-//!     kernel under Apple's Virtualization.framework (tart/UTM/Parallels use
-//!     it) and under other hypervisors.
-//!   * `hw.model` — Apple's Virtualization.framework reports `VirtualMac2,1`;
-//!     real hardware reports e.g. `Mac17,6`.
-//! `hv_vmm_present` is primary; the model string is a second, independent
-//! witness so a single sysctl going away cannot silently turn the gate off.
+//! A VM skips the Mac App Store surface by design, never by timeout, so this
+//! gate must never depend on a single signal: `kern.hv_vmm_present` is primary
+//! and the `hw.model` prefix is an independent second witness, so one sysctl
+//! going away cannot silently turn the gate off.
 
 use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Virtualization {
-    /// Bare metal (or nothing detectable).
     None,
-    /// Running inside a VM; the string names the signal that fired.
     Guest(String),
 }
 
@@ -41,7 +25,10 @@ impl Virtualization {
 }
 
 fn sysctl(key: &str) -> Option<String> {
-    let out = Command::new("/usr/sbin/sysctl").args(["-n", key]).output().ok()?;
+    let out = Command::new("/usr/sbin/sysctl")
+        .args(["-n", key])
+        .output()
+        .ok()?;
     if !out.status.success() {
         return None;
     }
@@ -79,7 +66,6 @@ pub fn detect() -> Virtualization {
     Virtualization::None
 }
 
-/// One-line human summary used by `sunghyun virt` and the verify report.
 pub fn describe() -> String {
     match detect() {
         Virtualization::Guest(reason) => {

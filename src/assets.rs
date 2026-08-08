@@ -33,13 +33,11 @@ pub fn write_file(path: &Path, contents: &str, executable: bool) -> Result<(), S
             .map_err(|e| format!("stat {}: {e}", path.display()))?
             .permissions();
         perms.set_mode(0o755);
-        fs::set_permissions(path, perms)
-            .map_err(|e| format!("chmod {}: {e}", path.display()))?;
+        fs::set_permissions(path, perms).map_err(|e| format!("chmod {}: {e}", path.display()))?;
     }
     Ok(())
 }
 
-/// Materialize shipped keyboard + Brewfile + wrapper under ~/.config/sunghyun.
 pub fn materialize_runtime_config(home: &Path) -> Result<PathBuf, String> {
     let dir = config_dir(home);
     write_file(

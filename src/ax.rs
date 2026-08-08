@@ -5,16 +5,12 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-/// How Accessibility gating should behave for the current session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AxGateMode {
-    /// Open Settings once and poll until trusted (or timeout / best-effort).
     WaitInteractive,
-    /// Headless / forced: skip without waiting.
     SkipHeadless,
 }
 
-/// Pure branch used by verify/bootstrap and unit tests.
 pub fn ax_gate_mode(headless: bool) -> AxGateMode {
     if headless {
         AxGateMode::SkipHeadless
@@ -53,9 +49,7 @@ pub fn accessibility_status() -> AxGateOutcome {
     if probe.trusted {
         AxGateOutcome::Trusted
     } else if headless::is_headless() {
-        AxGateOutcome::Skipped(
-            "Accessibility skipped (headless); grant later for tiling".into(),
-        )
+        AxGateOutcome::Skipped("Accessibility skipped (headless); grant later for tiling".into())
     } else {
         // Skipped, not Failed. macOS 27 gates the Accessibility toggle itself
         // behind Touch ID, so nothing on this side can flip it; post-switch has
@@ -312,10 +306,7 @@ fn wait_until_trusted() -> AxGateOutcome {
 
     eprintln!();
     eprintln!("sunghyun needs Accessibility for window tiling and clipboard paste.");
-    eprintln!(
-        "running binary: {}",
-        initial.running_path_display()
-    );
+    eprintln!("running binary: {}", initial.running_path_display());
     eprintln!("Opening Accessibility settings once (no Enter prompt)…");
     open_accessibility_settings();
     // Register the canonical binary's own TCC entry (OS prompt sheet once).
@@ -432,8 +423,6 @@ mod tests {
 
     #[test]
     fn wait_path_has_no_enter_prompt_strings_in_source_contract() {
-        // Behavioral contract mirrored in unit form: interactive mode exists,
-        // but ensure_accessibility must not be the Enter-loop mode name.
         assert_eq!(ax_gate_mode(false), AxGateMode::WaitInteractive);
     }
 }

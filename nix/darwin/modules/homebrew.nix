@@ -1,5 +1,3 @@
-# Mirrors assets/Brewfile + assets/manifest.toml (mas).
-# cleanup = "none" so unmanaged formulae/casks are not removed on switch.
 {
   config,
   lib,
@@ -11,7 +9,6 @@ let
   primaryUser = config.system.primaryUser;
   sunghyun = self.packages.${pkgs.stdenv.hostPlatform.system}.sunghyun;
 
-  # Mirrors assets/manifest.toml [[mas_apps]].
   masApps = {
     "497799835" = "Xcode";
     "869223134" = "KakaoTalk";
@@ -23,8 +20,6 @@ let
   masLog = "/var/log/sunghyun-masapps.log";
   masLabel = "com.anaclumos.masapps";
 
-  # Convergence job for Mac App Store apps. See the LaunchDaemon comment below
-  # for why this is a daemon and not an activation child process.
   masConverge = pkgs.writeShellScript "sunghyun-masapps-converge" ''
     set -u
     PATH=/usr/bin:/bin:/usr/sbin:/sbin
@@ -33,20 +28,16 @@ let
 
     log() { printf '%s masapps: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
-    # Stop this job for good (until the next `darwin-rebuild switch` writes a
-    # new plist, which re-bootstraps it). `bootout` and not `disable`: a
-    # persisted launchctl override would also block the re-bootstrap, so a
-    # changed app list could never converge again.
+    # `bootout` and not `disable`: a persisted override would also block the
+    # re-bootstrap, so a changed app list could never converge again.
     retire() {
       log "$1"
       /bin/launchctl bootout "system/$LABEL" 2>/dev/null || true
       exit 0
     }
 
-    # Virtualization: skip by design, never by timeout (owner, 2026-08-08).
-    # A guest may not be signed into a real Apple Account, so there is nothing
-    # here to converge — and `mas install` would open an App Store sign-in
-    # dialog that no one can answer. Single source of truth: `sunghyun virt`.
+    # A guest may have no real Apple Account, and `mas install` would then open
+    # a sign-in dialog no one can answer: skip by design, never by timeout.
     VIRT="$(${sunghyun}/bin/sunghyun virt 2>&1)"
     if [ $? -eq 0 ]; then
       retire "skipped by design: $VIRT"
@@ -57,11 +48,8 @@ let
       exit 0
     fi
 
-    # mas needs the primary user's Apple Account context. Run as root (mas
-    # requires root for `install` and would otherwise prompt for the macOS
-    # password to escalate itself) with SUDO_UID/SUDO_USER set, which is the
-    # invocation `brew bundle` makes and the one mas expects; without
-    # SUDO_UID it exits with "Failed to get sudo uid".
+    # mas needs root for `install` plus the primary user's Apple Account
+    # context: without SUDO_UID it exits with "Failed to get sudo uid".
     USER_NAME=${lib.escapeShellArg primaryUser}
     USER_UID="$(/usr/bin/id -u "$USER_NAME" 2>/dev/null || true)"
     USER_GID="$(/usr/bin/id -g "$USER_NAME" 2>/dev/null || true)"
@@ -80,26 +68,17 @@ let
       retire "converged: every declared App Store app is installed"
     fi
 
-    # Signed-out probe that costs nothing and opens nothing. `mas account` was
-    # removed upstream (unsupported since macOS 12), and `mas install` on a
-    # signed-out Mac opens an App Store sign-in dialog and blocks — which is
-    # exactly the sheet that used to be left on screen. An Apple Account
-    # signed in through Setup Assistant materializes MobileMeAccounts, so its
-    # absence is a cheap, GUI-free "not signed in yet" signal. Failing this
-    # probe defers; it never prompts and never fails the switch.
+    # `mas account` was removed upstream, so this plist is the only GUI-free
+    # signed-out probe: Setup Assistant sign-in materializes it.
     ACCOUNTS="/Users/$USER_NAME/Library/Preferences/MobileMeAccounts.plist"
     if ! /usr/libexec/PlistBuddy -c "Print :Accounts:0:AccountID" "$ACCOUNTS" >/dev/null 2>&1; then
       log "no Apple Account signed in yet; deferring$missing (retrying hourly, no dialog)"
       exit 0
     fi
 
-    # Last line of defence for the dialog. MobileMeAccounts proves an iCloud
-    # account, which is the same account as Media & Purchases on the Setup
-    # Assistant path but not necessarily on a hand-configured Mac. In that one
-    # mismatch case `mas install` still opens App Store's sign-in sheet and
-    # blocks on it forever — the sheet that used to be left on screen after a
-    # run. A normal install never launches App Store.app, so its appearance is
-    # the dialog: close it, stop the attempt, and try again later. An App
+    # iCloud and Media & Purchases can be different accounts, and in that case
+    # `mas install` still blocks on a sign-in sheet forever. A normal install
+    # never launches App Store.app, so its appearance is that sheet. An App
     # Store the owner opened themselves is left alone.
     appstore_was_open=0
     /usr/bin/pgrep -x "App Store" >/dev/null 2>&1 && appstore_was_open=1
@@ -150,7 +129,7 @@ in
       # Never "uninstall"/"zap": the karabiner-elements cask uninstall script
       # purges the shared DriverKit VirtualHID daemon files.
       cleanup = "none";
-      # Homebrew 6.x ask-mode / hints must never stall root activation.
+      # Homebrew 6.x prompts y/n by default, which would stall root activation.
       extraEnv = {
         HOMEBREW_NO_ASK = "1";
         HOMEBREW_NO_ENV_HINTS = "1";
@@ -164,50 +143,29 @@ in
       "ripgrep"
       "tmux"
       "topgrade"
-      # Alternative keyboard engine (OUTCOMES.md); daemon flake-default OFF.
       "kanata"
     ];
     casks = [
       "1password"
+      "codexbar"
       "cursor"
-      # Cursor Agent CLI (binary: cursor-agent). Official homebrew/cask
-      # formula, so it needs no `brew trust` grant, tracks the vendor's own
-      # release channel, and stays writable so `cursor-agent update` works —
-      # none of which a Nix store copy can do. Linux gets nixpkgs cursor-cli
-      # from nix/home/linux.nix instead.
+      # Stays writable so `cursor-agent update` works, which a Nix store copy
+      # cannot do. Linux gets nixpkgs cursor-cli from nix/home/linux.nix.
       "cursor-cli"
       "ghostty"
       "itsycal"
-      # Primary keyboard engine (OUTCOMES.md a-e). Cask (KE 16.x), not
-      # nix-darwin services.karabiner-elements: that module is broken for
-      # KE >= 15 (nix-darwin#1041) and nixpkgs lags; KE 16 also folds Input
-      # Monitoring into Accessibility, shrinking the TCC residue.
-      # NEVER `brew uninstall --cask karabiner-elements` (deletes the
-      # DriverKit dext Kanata/KE share).
+      # Cask, not nix-darwin services.karabiner-elements: that module is broken
+      # for KE >= 15 (nix-darwin#1041). NEVER `brew uninstall --cask
+      # karabiner-elements`; it deletes the DriverKit dext Kanata and KE share.
       "karabiner-elements"
     ];
-    # No masApps here on purpose: brew bundle hard-fails activation when the
-    # App Store is signed out. Owner policy (2026-08-07): Apple ID comes from
-    # Setup Assistant; if signed out, mas apps must skip gracefully and
-    # converge on a later switch.
+    # No masApps here on purpose: `brew bundle` hard-fails activation when the
+    # App Store is signed out, so they converge from the daemon below instead.
   };
 
-  # Mac App Store convergence runs as a supervised LaunchDaemon, not as a
-  # `nohup … &` child of the activation script.
-  #
-  # The old shape never converged: activation runs under `sudo`, and sudo
-  # 1.9.14+ defaults to `use_pty`, so the command gets its own pty session and
-  # sudo tears down what is left in it when activation returns. The detached
-  # mas process died with that teardown before writing a byte — a 0-length
-  # /var/log/sunghyun-masapps.log and no surviving process, observed on the
-  # 2026-08-07 VM run. Worse, `mas install` on a signed-out Mac opens an App
-  # Store sign-in dialog and blocks on it, which is what left a sign-in sheet
-  # on screen after the run finished.
-  #
-  # launchd is the supported way to own a retrying background job: it survives
-  # activation, restarts the script every StartInterval, keeps its own log, and
-  # the script boots itself out the moment every app is installed. Nothing here
-  # can block or slow a switch, because activation only writes the plist.
+  # A LaunchDaemon and not an activation child process: activation runs under
+  # sudo with use_pty, so a detached child dies with the pty teardown when
+  # activation returns (0-length log, no process).
   launchd.daemons.masapps = {
     # `command` (not ProgramArguments) so nix-darwin wraps it in
     # `/bin/wait4path /nix/store`: at boot the daemon can otherwise fire
@@ -220,8 +178,6 @@ in
       ProcessType = "Background";
       StandardOutPath = masLog;
       StandardErrorPath = masLog;
-      # Never restart-loop: this job is meant to exit, and to exit for good
-      # once converged.
       KeepAlive = false;
       LowPriorityIO = true;
     };
