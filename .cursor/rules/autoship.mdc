@@ -1,0 +1,19 @@
+---
+description: "Autoship = open PR, 10 minutes of silence (comments reset the clock; verify and handle each), then merge; published packages also run release"
+alwaysApply: true
+---
+
+# Autoship
+
+Owner definition (2026-07-31). When the owner says autoship (or asks to ship via the autoship path):
+
+1. Open a PR (branch + push + `gh pr create`).
+2. Wait **10 minutes of silence**. Silence means no new PR comments and no new review/CI actions that need a response.
+3. Any comment must be verified independently for validity, then handled (fix in code, or refute with evidence) and **replied to directly** on the thread.
+4. Any comment or action **invalidates** the silence window; restart the full 10 minutes after the response lands.
+5. After a clean 10-minute silence window, merge.
+6. For **published packages**, continue through the recorded release process (version bump, tag, publish) after merge. Dotfiles with no package publish skip this step.
+
+**Why:** Autoship is not "merge immediately." The silence window is the review gate; comments are real work that resets the clock.
+
+**How to apply:** An explicit autoship request overrides "open the PR and stop" and overrides [dotfiles-repo-ships-to-main](mdc:.cursor/rules/dotfiles-repo-ships-to-main.mdc) for that request. Do not count your own merge-prep pushes as breaking silence unless they draw new comments. Related: [one-subagent-per-task](mdc:.cursor/rules/one-subagent-per-task.mdc).

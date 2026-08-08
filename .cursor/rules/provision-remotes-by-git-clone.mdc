@@ -1,0 +1,12 @@
+---
+description: Provision a remote machine's dotfiles by git clone, never by rsyncing the local checkout over
+alwaysApply: false
+---
+
+# Provision Remotes By Git Clone
+
+When setting up a remote machine with the owner's shell config, `git clone` the repo on that machine. Do not rsync the local checkout over.
+
+**Why:** Owner said so explicitly on 2026-07-20, during a server provisioning run. A clone keeps the remote copy a real git checkout that can pull updates; rsync smuggles local uncommitted state across and leaves a directory that can never be updated cleanly.
+
+**How to apply:** Clone to the path the shell config expects, since that path is hardcoded rather than discovered, then symlink per the README. Provision a non-root account to own the checkout and the package manager, because Homebrew refuses to run as root and a root-owned prefix poisons every other account on the host. If the repo is private, the clone needs credentials that work in a non-interactive shell; see [git-auth-must-survive-non-login-shell](mdc:.cursor/rules/git-auth-must-survive-non-login-shell.mdc) and [github-token-git-basic-auth](mdc:.cursor/rules/github-token-git-basic-auth.mdc).

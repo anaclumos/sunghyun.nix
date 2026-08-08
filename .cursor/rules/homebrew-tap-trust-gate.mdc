@@ -1,0 +1,14 @@
+---
+description: Homebrew 6.x refuses to load formulae and casks from non-official taps until trusted; brew trust is the grant, and an untrusted entry aborts the whole bundle run
+alwaysApply: false
+---
+
+# Homebrew Tap Trust Gate
+
+Homebrew 6.x will not load a formula, cask, or external command from a non-official tap until that tap is trusted. The error is `Refusing to load formula <tap>/<name> from untrusted tap <tap>`, and the documented grant is `brew trust --tap <tap>` (or `brew trust --formula <tap>/<name>` for one entry). Trusted entries are recorded in `~/.homebrew/trust.json`, or under `$XDG_CONFIG_HOME/homebrew/trust.json` when that is set. `brew tap` itself still succeeds, so a Brewfile looks fine until the first tapped entry is reached.
+
+Two traps. The refusal aborts the entire `brew bundle` run at that entry, so every later formula and cask is silently skipped, not just the tapped one. And `brew bundle ... | tee log` reports tee's exit status, so the run looks like it exited 0 while nothing installed.
+
+**Why:** The trust gate is a standing grant to run third-party code, so it belongs to the owner, not to an agent working through a setup guide. It is also new enough that a tapped Brewfile written before Homebrew 6 stops working with no change to the file.
+
+**How to apply:** When a `brew bundle` run reports an untrusted tap, install everything from the official taps first, then surface the tapped entries as one explicit ask rather than granting trust yourself. Never pipe a bundle run through `tee` or `tail`; redirect with `>` so the real exit code survives. An unqualified cask name resolves to homebrew/cask even when a same-named tap is installed, so a tapped cask needs its fully qualified `<tap>/<name>` form. Related: [homebrew-no-ask](mdc:.cursor/rules/homebrew-no-ask.mdc), [cask-zap-needs-full-disk-access](mdc:.cursor/rules/cask-zap-needs-full-disk-access.mdc).

@@ -1,0 +1,12 @@
+---
+description: Homebrew 6.x prompts y/n by default on install/upgrade; HOMEBREW_NO_ASK=1 silences it, and it surfaces through topgrade
+alwaysApply: false
+---
+
+# Homebrew No Ask
+
+Homebrew 6.x makes ask mode the default for `brew install`, `reinstall` and `upgrade`. It prints `==> Do you want to proceed with the upgrade? [y/n]` and blocks non-interactive runs. The prompt surfaces through topgrade's Brew steps, which pass it straight through, so it looks like topgrade is asking. The documented off switch is `HOMEBREW_NO_ASK=1`, per `man brew` under `-y/--no-ask/--yes`. It disables only the default; an explicit `brew upgrade --ask` still prompts.
+
+**Why:** the prompt appears during an automated upgrade run, so the first suspect is the automation rather than a Homebrew default-behavior change. The fix is one environment variable, not a topgrade flag.
+
+**How to apply:** Set `HOMEBREW_NO_ASK=1` to silence brew confirmation prompts under topgrade, CI, or any script. It belongs in the canonical shell env file, see [global-env-in-zshenv](mdc:.cursor/rules/global-env-in-zshenv.mdc). Learned 2026-06-22.

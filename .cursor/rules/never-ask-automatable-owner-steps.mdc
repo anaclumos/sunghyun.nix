@@ -1,0 +1,22 @@
+---
+description: Never ask the owner to run commands or click UI the agent can automate
+alwaysApply: true
+---
+
+# Never Ask Automatable Owner Steps
+
+Owner rage-mandate (2026-08-07): do not hand the owner follow-up commands or click checklists for work the script, agent, or cua-driver can do. Automate, open the UI, poll, drive Touch ID / password dialogs into focus and wait. The only legitimate human surfaces are secrets the agent must not invent (passwords/Apple ID) and true physical impossibilities.
+
+Owner (2026-08-07): rare interactive sudo prompts are an allowed human surface, alongside passwords/Touch ID. Do not stall or stop a sudo-requiring step; run it and let sudo prompt in the terminal. One prompt per run is the design goal; prompt spam (SecurityAgent/osascript-admin every few seconds) remains a bug.
+
+Owner (2026-08-07): "Use tmux so that it doesn't ask for sudo again and again." Agent shell calls get fresh sessions, so sudo timestamps (tty_tickets) die between calls. Run all privileged phases of one job inside a single persistent tmux session: authenticate once there (`sudo -v`, where Touch ID works via pam_reattach because the flake sets `security.pam.services.sudo_local.reattach = true`), keep a `sudo -n true` keep-alive loop in the pane, and drive commands with send-keys + a status file. Never re-prompt per command.
+
+**Why:** Fresh-Mac and restore sessions failed when agents printed “run X next” / “then click Y” instead of finishing the path. One-shot install UX (`curl …/install.sh | bash`) and agent/cua continuation are the product; multi-step human checklists are a bug.
+
+**How to apply:**
+
+1. Prefer `install.sh`, `sunghyun` (the sunghyun.nix CLI, renamed from `sunghyun-os` 2026-08-08), `defaults`/plist, `cua-driver`, Cursor Agent `-p --force`, and polling over any owner instruction.
+2. Never say “please run…”, “then re-run…”, or “sign in then continue” as the primary path when the agent can open Settings/App Store and wait.
+3. Password / Touch ID: focus the dialog yourself and wait/poll; do not invent credentials; do not replace the wait with a command list.
+4. Docs and READMEs: one entry command only. No multi-step human checklists for automatable gates.
+5. Related: [new-mac-apply-manual-via-cua](mdc:.cursor/rules/new-mac-apply-manual-via-cua.mdc), [kanata-never-brick-keyboard](mdc:.cursor/rules/kanata-never-brick-keyboard.mdc).

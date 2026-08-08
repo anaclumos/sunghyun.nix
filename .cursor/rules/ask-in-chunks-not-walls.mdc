@@ -1,0 +1,24 @@
+---
+description: After scans, ask keep/drop in batches of 10; record only; no reply walls
+alwaysApply: true
+---
+
+# Ask In Batches Of Ten, Not Walls
+
+Correction Guy (2026-08-02): after a quiet inventory or scan, dumping the full keep/drop questionnaire as one huge reply wall fails the "don't info-bomb" bar. Owner override (2026-08-02): ask **10 items at a time**, not one-by-one and not the full inventory.
+
+Correction Guy (2026-08-02): DROP answers during an audit are decisions, not uninstall authorization. Four removals ran mid-audit under an ask-only mandate and all four were unauthorized. Before continuing an audit after such a breach, ask one restore choice (restore all / restore a named subset / restore none / something else). Asking is not applying; restore only if the owner explicitly picks restore.
+
+Owner (2026-08-02): **restore none** ("No, all delete"). Those mid-audit removals stay dropped; do not reinstall.
+
+**Why:** scan work can be silent; ten items per turn balances pace and readability. Asking is not applying. DROP is a ledger entry until a separate apply mandate.
+
+**How to apply:**
+
+- **Role split:** the parent or surface agent asks keep/drop in batches of 10. Subagents handle deletion, edits, and memory writes, not the questionnaire.
+- Ask exactly ten keep/drop items per turn, or fewer if fewer remain. Prefer the native `AskQuestion` tool when available. Wait for answers before the next batch.
+- Append answers to the audit's on-disk ledger. Record only on the ask path.
+- DROP is not uninstall until the owner separately mandates apply or remove. Do not uninstall, trash, or mutate the machine during an ask-only audit turn.
+- Do not paste the full inventory into chat. If `AskQuestion` is missing, use short bullets.
+- Correction Guy (2026-08-02): never write KEEP or DROP to the ledger until the surface agent has a clear owner answer for that exact batch. Subagents must not pre-record decisions, whether by inferring "delete all" from a prior batch or by recording while the ask is still open. If a batch is written before the owner replies, mark it UNCONFIRMED and strike the premature entries; do not invent KEEP.
+- Correction Guy (2026-08-02): do not confirm a batch from a misattributed quote. Only the surface agent's clear owner answer for that exact batch counts. The observed failure was reporting a batch reconfirmed when the owner's answer had applied to a different batch entirely.

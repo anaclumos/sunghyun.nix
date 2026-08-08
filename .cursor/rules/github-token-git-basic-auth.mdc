@@ -1,0 +1,20 @@
+---
+description: Classic ghp_ PATs need Basic auth on git-over-HTTPS; Bearer fails with 401 even though the same token works with Bearer on the API
+alwaysApply: false
+---
+
+# Classic PATs Need Basic Auth For Git Over HTTPS
+
+GitHub's git smart-HTTP endpoint rejects `Authorization: Bearer <token>` for classic `ghp_` tokens with HTTP 401, even though the same token authenticates fine with Bearer against `api.github.com`. The two endpoints do not accept the same header, so a token that demonstrably works is not evidence that the transport is configured right.
+
+For a one-shot clone, pass Basic explicitly:
+
+```bash
+git -c http.extraHeader="Authorization: Basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)" clone <url>
+```
+
+For durable auth prefer `gh auth setup-git --hostname github.com --force`. An environment-token setup needs both flags, because bare `gh auth setup-git` fails without a prior `gh auth login`. Learned 2026-07-20 while provisioning a server.
+
+**Why:** the 401 reads as a bad or expired token, so the natural next step is to reissue the token, which changes nothing. The header scheme is the variable, not the credential.
+
+**How to apply:** When a token authenticates against the API but git over HTTPS returns 401, switch the scheme before suspecting the token. Related: [gh-env-token-auth-is-invisible](mdc:.cursor/rules/gh-env-token-auth-is-invisible.mdc), [provision-remotes-by-git-clone](mdc:.cursor/rules/provision-remotes-by-git-clone.mdc).

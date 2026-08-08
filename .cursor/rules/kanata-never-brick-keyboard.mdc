@@ -1,0 +1,27 @@
+---
+description: Kanata brick class, safe enable path, emergency disable
+alwaysApply: true
+---
+
+# Kanata Never Brick Keyboard
+
+Owner + incident (2026-08-07): a grabbing Kanata without healthy VirtualHID output drops **every** key, including Accessibility Keyboard / OSK. This is not “remap wrong”; it is exclusive IOHID seize with nowhere to emit.
+
+**Root cause class:**
+
+1. Kanata must run as **root** (VirtualHID IPC under `/Library/Application Support/org.pqrs/tmp/rootonly/`).
+2. Karabiner-DriverKit-VirtualHIDDevice **v6.2.0** must be installed and the dext approved; daemon must be running.
+3. Input Monitoring (and usually Accessibility) must be granted for the kanata binary path in use.
+4. `KeepAlive` LaunchDaemon + failed VirtualHID / Input Monitoring → restart loop while the grab eats keys.
+5. Upstream class: grab-before-output / output-loss without releasing input ([jtroo/kanata#1792](https://github.com/jtroo/kanata/issues/1792); recovery landed in later kanata builds).
+
+**Why OSK dies too:** Accessibility Keyboard still needs a working HID path into the session. When the physical device is seized and VirtualHID emit fails, there is no usable keyboard device left.
+
+**How to apply:**
+
+1. Flake `services.sunghyun.kanata.enable` defaults **false**. Bare `darwin-rebuild` must not brick typing. (2026-08-08: repo is now public `anaclumos/sunghyun.nix`, binary `sunghyun`, env `SUNGHYUN_*`.)
+2. Product enable path only: `sunghyun kanata enable --safe`. It requires kanata ≥ **1.12.0**, because earlier builds lack the grab-without-output recovery fix. The path then runs VirtualHID up → `kanata --check` → baseline proof → passthrough stage proof → full config proof → LaunchDaemon, with automatic `kanata disable` rollback on any failure and Input Monitoring via open-Settings-pane + poll. Since the 2026-08-07 outcome evaluation, Karabiner-Elements is the primary engine and Kanata is opt-in: `install.sh` runs the safe enable only when `SUNGHYUN_KEYBOARD_ENGINE=kanata`.
+3. Emergency: `sunghyun kanata disable` (bootout, kill, plist → `.disabled`, plus a persisted `launchctl disable system/com.anaclumos.kanata` override so a bare plist rename can never re-arm the daemon; safe-enable runs `launchctl enable` first). Prefer this over asking the owner to type `launchctl` while bricked.
+4. Never `launchctl bootstrap` a kanata plist without the safe proof path.
+5. Known-good `assets/kanata.kbd`: Caps tap=maximize / hold=Hyper; Hyper arrows/1-4/Enter/W tiling + Hyper+J browser; L/R ⌘ tap=IME hold=⌘ chords; ⌘⇧V = native macro `M-spc` then `M-4` (a CLI hop is dead: macOS 26+ WindowServer drops synthesized keys before the hotkey matcher). Stage-0 `kanata-passthrough.kbd` is identity-only.
+6. Related: [never-ask-automatable-owner-steps](mdc:.cursor/rules/never-ask-automatable-owner-steps.mdc), [new-mac-apply-manual-via-cua](mdc:.cursor/rules/new-mac-apply-manual-via-cua.mdc).

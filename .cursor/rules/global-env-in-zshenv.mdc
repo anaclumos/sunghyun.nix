@@ -1,0 +1,12 @@
+---
+description: Owner wants global CLI env toggles as exports in the canonical shell env file, not function-scoped env prefixes
+alwaysApply: false
+---
+
+# Global Env Toggles Go In The Env File
+
+For Homebrew and similar global CLI environment toggles, the owner prefers a global `export` in the canonical shell env file over a function-scoped `env VAR=1` prefix. The assistant first scoped `HOMEBREW_NO_ASK=1` to the single wrapper function that ran the upgrade, mirroring an existing scoped idiom in the same function. The owner rejected that and chose a global export beside the other Homebrew exports.
+
+**Why:** the "minimal, scoped change" instinct is the wrong default here. The owner wants such toggles to apply everywhere, to a manual invocation and to an automated one alike, from one declaration in the canonical file.
+
+**How to apply:** When adding or changing a global CLI env setting, add `export VAR=…` to the canonical shell env file beside the other exports. Scope it only when the owner explicitly asks for divergent behavior between manual and automated runs. Learned 2026-06-22. See [homebrew-no-ask](mdc:.cursor/rules/homebrew-no-ask.mdc).

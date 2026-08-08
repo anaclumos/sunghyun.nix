@@ -1,0 +1,12 @@
+---
+description: gh authenticating purely through a GITHUB_TOKEN env var is invisible; changing an account's environment silently breaks private git pulls
+alwaysApply: false
+---
+
+# gh Env Token Auth Is Invisible
+
+An account can have no persistent `gh` login at all and still work, because its git credential helper is `gh auth git-credential` and `gh` authenticates solely through the `GITHUB_TOKEN` the shell environment exports at startup. Nothing announces this dependency. `gh auth status` reports "Logged in (GITHUB_TOKEN)" only while the variable happens to be set, so the setup reads as authenticated right up until the variable is gone. Remove the key and private-repo `git pull` fails with "could not read Username for 'https://github.com'". Seen 2026-07-20 on a multi-account server after its per-account environments were split apart, and resolved the same day by giving the affected account its own `gh auth login`.
+
+**Why:** The failure lands far from its cause. An environment change on one account surfaces later as a repo access error, and the diagnostic command actively confirms the state that is about to disappear. Reusing one broad token across separate accounts is also over-provisioning, since each account inherits every scope the token carries.
+
+**How to apply:** When an account's environment changes, re-test `git pull` on a private checkout it owns rather than trusting `gh auth status`. For repo access on an account that should hold minimal credentials, prefer a per-account `gh auth login`, or a fine-grained token scoped to contents read, over copying a broad token across accounts. Related: [git-auth-must-survive-non-login-shell](mdc:.cursor/rules/git-auth-must-survive-non-login-shell.mdc), [github-token-git-basic-auth](mdc:.cursor/rules/github-token-git-basic-auth.mdc), [secrets-env-single-loader](mdc:.cursor/rules/secrets-env-single-loader.mdc).

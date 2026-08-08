@@ -1,0 +1,12 @@
+---
+description: Never restart the service carrying the session you are working through; on a mesh-VPN host that includes the VPN daemon, not just sshd
+alwaysApply: false
+---
+
+# Never Restart Your Own Ingress
+
+A host reached over a mesh VPN has two services carrying ingress, not one: the ssh daemon and the VPN daemon. Restarting the VPN daemon from a session that rides the VPN drops the session, and unlike an sshd restart it also takes away the address you would reconnect to. Learned 2026-07-21 while hardening a remote dev box.
+
+**Why:** the ssh daemon is the obvious thing to leave alone, so it gets protected while the transport underneath it does not. The failure is silent until the moment it is unrecoverable without out-of-band access.
+
+**How to apply:** Before restarting any daemon on a remote host, ask which service the current session is travelling through, and include the network transport in that answer. If the change genuinely needs a restart, apply it from a path that does not depend on the service being restarted, or schedule it with a timer that restores the previous state if the new one fails to come back. Prefer live-applying a setting over a restart when both are available. Related: [linux-oom-protection-stack](mdc:.cursor/rules/linux-oom-protection-stack.mdc), [tailscale-untagged-node-acl-drop](mdc:.cursor/rules/tailscale-untagged-node-acl-drop.mdc).

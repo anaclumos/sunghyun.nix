@@ -1,0 +1,33 @@
+---
+description: "~/.hushlogin does not silence the Ubuntu login banner; pam_motd 1.7 has no hushlogin support, so the banner dies only by commenting pam_motd in /etc/pam.d/sshd"
+alwaysApply: false
+---
+
+# Ubuntu MOTD Needs PAM Edit
+
+On Ubuntu 26.04 (libpam-modules 1.7.0, OpenSSH 10.2p1), the SSH login banner has two
+independent sources, and the folk remedy `touch ~/.hushlogin` only covers one of them.
+
+- `pam_motd.so` in `/etc/pam.d/sshd` prints everything: the "Welcome to Ubuntu" header,
+  the Documentation/Management/Support block, the "System information as of" panel, the
+  motd-news ad, and the ESM / "N updates can be applied" block. It runs `/etc/update-motd.d/*`
+  into `/run/motd.dynamic`.
+- sshd itself prints `Last login:` when `PrintLastLog yes`.
+
+`pam_motd` has no hushlogin support at all. Verified 2026-07-26: the string "hush" does not
+appear in `pam_motd.so`, and `man pam_motd` never mentions it. `man sshd` FILES confirms
+`~/.hushlogin` covers only `PrintLastLog` and `PrintMotd`, and Ubuntu ships `PrintMotd no`
+because PAM does that job. So `.hushlogin` alone removes just the `Last login:` line.
+
+**Why:** every "disable the Ubuntu MOTD" answer in the wild starts with `.hushlogin`, which
+silently does almost nothing here. Reaching for it and declaring victory produces a false green.
+
+**How to apply:** comment both `pam_motd.so` lines in `/etc/pam.d/sshd` (one root edit covers
+every account on the host), and add `~/.hushlogin` per account for the `Last login:` line. No
+sshd restart needed, since PAM config is read per session. Tradeoff: `/etc/pam.d/sshd` is a dpkg
+conffile, so an `openssh-server` upgrade prompts about the local change. The alternative,
+`chmod -x /etc/update-motd.d/*`, is worse: those are conffiles too, upgrades restore the exec
+bit, and `50-landscape-sysinfo` is a symlink so the chmod lands on a shared file under
+`/usr/share/landscape`.
+Test with `echo exit | ssh -tt <host>`; a pty is required or nothing prints, and
+`ssh host <command>` never shows the banner because sshd suppresses it when a command is given.

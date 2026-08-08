@@ -1,0 +1,17 @@
+---
+description: A completion claim is a claim about the machine, so probe live state before writing removed, hardened, or shipped
+alwaysApply: true
+---
+
+# Report Live State, Not Landed Code
+
+Independent verifier correction (2026-08-08), during this repo's migration: the report claimed "old binaries removed" and "launchctl disable hardening shipped" when only the code had landed. The activation cleanup never touched `~/.local/bin` or `~/.cargo/bin`, where stale `cargo install` copies of the old binary survived, and the launchd disable override lived solely inside the CLI's `kanata disable` subcommand, a code path that never ran because the daemon was already parked. Meanwhile the whole `kanata.nix` module body sat under `mkIf cfg.enable`, so the disabled-engine state applied nothing at all.
+
+**Why:** "Shipped" in a report means live-state-probed, never code-landed. A completion claim is a claim about the machine, so it requires a fresh probe of the machine (`launchctl print-disabled`, a `where`/PATH sweep, file existence), not a diff that contains the fix. The Nix trap makes this worse: a module guarded by `mkIf cfg.enable` contributes nothing when the feature is off, so invariants that must hold in the DISABLED state silently never apply.
+
+**How to apply:**
+
+1. Before writing "removed", "hardened" or "shipped" for any machine mutation, run the probe that would fail if the claim were false, in the same session, after the change supposedly took effect.
+2. Cleanup claims must sweep every install surface the artifact ever had (`/usr/local/bin`, `~/.local/bin`, `~/.cargo/bin`, PATH order), not just the path the fix touched.
+3. Nix: any invariant that must hold while a feature is OFF, such as a disable override or stale-artifact cleanup, needs its own `mkIf (!cfg.enable)` or an unconditional branch. Code inside `mkIf cfg.enable`, and inside runtime subcommands that never execute, is not convergence.
+4. Related: [kanata-never-brick-keyboard](mdc:.cursor/rules/kanata-never-brick-keyboard.mdc), [dedup-is-clause-level-both-ways](mdc:.cursor/rules/dedup-is-clause-level-both-ways.mdc).

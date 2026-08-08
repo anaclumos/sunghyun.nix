@@ -1,0 +1,48 @@
+---
+description: Use when driving a clean macOS guest under tart over VNC; covers host-guest transport, HiDPI click math, and vncdotool input limits
+alwaysApply: false
+---
+
+# Driving A tart macOS VM Over VNC
+
+`tart` wraps Virtualization.framework, so a clean macOS guest is
+`tart clone ghcr.io/cirruslabs/macos-sequoia-base:latest` plus
+`tart run <name> --vnc-experimental --dir=vmshare:<hostdir>`. Learned the hard
+way during the 2026-08-08 acceptance test of this repo's installer.
+
+**Host↔guest transport:**
+
+- The Cirrus base image ships with Remote Login **off**, and even after turning
+  it on, host→guest SSH from an agent shell is blocked by macOS Local Network
+  Privacy. Do not budget time for SSH. Use `--dir=` (virtiofs, mounts at
+  `/Volumes/My Shared Files/<tag>`) for both scripts and logs, and drive
+  commands by typing into Terminal over VNC.
+- `--no-graphics` guests can fail to finish booting; `--vnc-experimental`
+  attaches a display and boots reliably. The VNC URL and one-time password are
+  printed on stdout, so tee that output to a file.
+- Apple's framework caps concurrent VMs at 2. A second agent running its own VM
+  will make yours fail to start; use a unique VM name.
+
+**VNC input quirks (vncdotool):**
+
+- The framebuffer is HiDPI. A 1024x768 screenshot is a 2048x1536 framebuffer,
+  so every click coordinate is **2x the pixel you measured on the screenshot**.
+  Un-doubled clicks land near (0,0) and open the Apple menu.
+- `type` sends unshifted characters only. No uppercase, no `:`, no `|`. Keep
+  typed commands all-lowercase (`/volumes/my shared files/...` works, the path
+  is case-insensitive) and put anything else in a script on the shared folder.
+  Environment variables must be exported inside that script.
+- The Command key is not delivered. `key cmd-n` hangs the client, `key super-n`
+  does nothing. Use the menu bar with the pointer instead (Shell > New Window >
+  Basic) when you need a second shell.
+- Security-sensitive dialogs ("Terminal would like to administer your
+  computer", the Determinate Nix keychain prompt) accept a real VNC pointer
+  click on Allow once coordinates are correct, but never synthetic keystrokes.
+
+**Guest prep for a fresh-Mac fidelity test:** the base image has passwordless
+sudo, so move the `NOPASSWD` drop-in aside or the sudo behaviour under test is
+fake. Create the account the flake expects with `dscl` (`sysadminctl` raises the
+system-modal TCC dialog), add it to `admin` with `dseditgroup`, then
+`createhomedir -c -u`, and pre-seed
+`~/Library/Preferences/com.apple.SetupAssistant.plist` so the first login is a
+plain desktop.

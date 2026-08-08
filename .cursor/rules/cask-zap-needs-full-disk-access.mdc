@@ -1,0 +1,14 @@
+---
+description: brew uninstall --cask --zap needs Full Disk Access for the running terminal; without it the app is removed but the zap fails, leaving the cask half-uninstalled
+alwaysApply: false
+---
+
+# Cask Zap Needs Full Disk Access
+
+`brew uninstall --cask --zap` fails with `Error: Unable to remove some files. Please enable Full Disk Access for your terminal under System Settings -> Privacy & Security -> Full Disk Access` when the process running brew has not been granted Full Disk Access. macOS TCC blocks the deletion of the `~/Library` files the zap stanza targets.
+
+The failure is not atomic. Homebrew backs the app up into the Caskroom and removes it from `/Applications` before dispatching the zap stanza, so on failure the app is gone, the cask is still listed by `brew list --cask`, and the run aborts before reaching any later cask in the same command. Recovery is `brew reinstall --cask <name>` or a retry once the permission is granted, because the Caskroom copy survives.
+
+**Why:** The error text names the terminal, which reads like a shell problem rather than a per-process macOS permission, and the half-finished state makes `brew list --cask` disagree with `/Applications`.
+
+**How to apply:** Treat this as a local blocker to hand back, not something to route around; there is no flag that skips the protected files. Grant Full Disk Access to the process that runs brew, then re-run the same command, which converges because cask uninstall is idempotent. When zapping several casks, expect the first failure to strand exactly one cask and leave the rest untouched. Related: [homebrew-tap-trust-gate](mdc:.cursor/rules/homebrew-tap-trust-gate.mdc).

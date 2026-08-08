@@ -1,0 +1,12 @@
+---
+description: A Tailscale node that joins untagged gets a working tunnel but ACL-dropped TCP, so tailscale ping succeeds while ssh times out
+alwaysApply: false
+---
+
+# Untagged Tailscale Nodes Get ACL-Dropped TCP
+
+A tailnet whose ACL grants access by tag treats an untagged node as reachable at the WireGuard layer and unreachable at every layer above it. The tunnel comes up, `tailscale ping` pongs, and ssh times out. Learned 2026-07-20 when a newly provisioned server joined without tags.
+
+**Why:** the two observations point in opposite directions, so the natural read is a firewall or sshd problem on the new host. `tailscale ping` answers from the tailscaled daemon itself and never passes through the ACL, which is exactly why it keeps succeeding while nothing else does.
+
+**How to apply:** When a fresh node is pingable over the tailnet but refuses every TCP connection, check its tags before touching sshd or the firewall. Fix it on the node with `tailscale up --hostname=<name> --advertise-tags=<tag>` rather than by widening the ACL. Tagging also transfers node ownership to the tagged-devices pseudo-user and removes node-key expiry, so a tagged node stops needing periodic re-authentication. Related: [never-restart-your-own-ingress](mdc:.cursor/rules/never-restart-your-own-ingress.mdc).

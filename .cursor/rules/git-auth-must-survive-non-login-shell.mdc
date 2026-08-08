@@ -1,0 +1,16 @@
+---
+description: Use when git over HTTPS prompts or hangs on a remote machine an agent reaches by ssh, or before changing how gh stores its token there
+alwaysApply: false
+---
+
+# Git Auth Must Survive A Non Login Shell
+
+An agent reaches a remote machine through `ssh host command`, and that shell is neither a login shell nor an interactive one. Two ordinary-looking auth setups break there, and both look like a missing mechanism rather than a misconfiguration.
+
+The shell never reads the system profile, so the package manager is absent from `PATH` and a credential helper named by bare command name is simply not found. Naming the helper by absolute path in `~/.gitconfig`, for both `https://github.com` and the gist host, is what keeps it resolvable. Separately, a non-interactive ssh session cannot unlock the macOS login keychain, so a credential stored there is unreadable; `gh` holding the token in its own on-disk store is what makes the read work without a GUI session. Verified 2026-08-03 in a fully bare shell, `env -i` carrying only `HOME`, where a private repo `ls-remote` still succeeded.
+
+A host can also carry more than one `gh` account, and `gh auth status` will list an invalid one beside the working one. That line does not mean git auth is broken. It does mean repos reachable only through the invalid account stay unreachable until someone logs that account in.
+
+**Why:** Set up on 2026-08-03. A two-machine ingest program needed code fixes to reach its remote, git over HTTPS had no non-interactive credential, and an agent ended up hand-carrying a commit across as a git bundle. The helper was already wired correctly and only the login was stale, which is exactly the failure that reads as "this machine has no mechanism for this".
+
+**How to apply:** Test in the shell agents actually use, never an interactive one, or the pass is false. The check is a fetch over ssh with `GIT_TERMINAL_PROMPT=0` set, which is what turns a silent hang into a clear failure. When the checkout must not move, prove the pull in a throwaway clone rather than the live tree. Do not re-authenticate in a way that moves the token into the login keychain. Related: [github-token-git-basic-auth](mdc:.cursor/rules/github-token-git-basic-auth.mdc), [gh-env-token-auth-is-invisible](mdc:.cursor/rules/gh-env-token-auth-is-invisible.mdc).

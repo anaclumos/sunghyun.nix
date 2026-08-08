@@ -1,0 +1,14 @@
+---
+description: Agent memory lives in a public repo, so no environment or device context at all, and the secret floor stays absolute
+alwaysApply: true
+---
+
+# Memory Is Public, So No Private Context
+
+Agent memory is published. Nothing written here may describe the owner's infrastructure. That bars IP addresses, hostnames, tailnet and MagicDNS names, account names and uids, absolute home paths, disk and RAID layout, hardware specs, kernel versions, and any file path that exists only on the owner's machines. Write the behavioral lesson and generalize the setting: "a Hetzner dev server", "the primary account", "the repo's zsh config".
+
+The secret floor is unchanged and still absolute. Never record key material, meaning passwords, tokens and private keys. Never record anything that functions as a map to where secrets live, which covers PAT scope lists, secret file paths, secret backup filenames, counts of how many keys a secrets file holds, and the names of the secret families it contains.
+
+**Why:** Owner decision on 2026-08-08. This supersedes the 2026-07-30 ruling that sanctioned recording environment and device context. That ruling rested on the memory remote being private, and that premise is now false: memory moved into a public repo, so every line is world-readable and the old allowance would publish an infrastructure map.
+
+**How to apply:** Before writing a rule, read it as a stranger. If it teaches them something about the owner's machines rather than something about the tool, generalize until it does not. Keep the dated correction and the attribution of who corrected what, since that is the entropy worth keeping. Version names and package versions are evidence for a technical claim, not identity, and may stay. If a candidate rule's entire value is the private fact, do not publish a hollowed-out shell; drop it. Related: [secrets-writes-dotenvx-only](mdc:.cursor/rules/secrets-writes-dotenvx-only.mdc), [memory-lives-in-cursor-rules](mdc:.cursor/rules/memory-lives-in-cursor-rules.mdc).

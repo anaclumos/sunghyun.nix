@@ -1,0 +1,14 @@
+---
+description: Canonical agent memory is .cursor/rules/*.mdc in the system repo; other agent memory dirs symlink into it, never the reverse
+alwaysApply: true
+---
+
+# Memory Lives In `.cursor/rules`
+
+Canonical agent memory is `.cursor/rules/*.mdc` in the system repo, with `AGENTS.md` as the one agent guide beside it. Per-assistant memory conventions do not get their own copy: traditional agent memory directories symlink into `.cursor/rules`, never the reverse, and a memory directory is never itself replaced by a symlink out of the tree.
+
+Correction Guy's setup default is the case that keeps trying to invert this. It puts real memory files in a repo `.memory` directory and symlinks the assistant's project memory there. Here `.memory` is an index only: a `MEMORY.md` whose entries link into `../.cursor/rules/*.mdc`.
+
+**Why:** Owner policy in `AGENTS.md`, moved with the memory tree on 2026-08-08 from the retired configs repo into this one. One canonical location keeps a lesson from existing in two places and drifting. Correction Guy's public-Wikipedia bar for git-tracked `.memory` is now the same bar this tree already meets, since memory is public, so the two no longer conflict on content, only on location.
+
+**How to apply:** Write new high-entropy lessons as `.cursor/rules/*.mdc`. On `correctionguy:setup`, create a real `.memory/` holding an index and nothing else. If an assistant expects a project memory directory, `ln -sfn` it to `<root>/.cursor/rules`. Never invert the links. Related: [memory-is-public-no-private-context](mdc:.cursor/rules/memory-is-public-no-private-context.mdc), [ask-in-chunks-not-walls](mdc:.cursor/rules/ask-in-chunks-not-walls.mdc).

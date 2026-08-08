@@ -1,0 +1,12 @@
+---
+description: Vendor install.sh scripts append PATH blocks through the ~/.zshrc symlink into the tracked repo, duplicating blocks the repo already has and hardcoding absolute paths
+alwaysApply: false
+---
+
+# Installers Write Through The zshrc Symlink
+
+`~/.zshrc` is a symlink into the tracked dotfiles repo, so any vendor installer that "adds itself to your shell config" edits a tracked file rather than a machine-local copy. Observed on a fresh machine: five separate installers each appended to the repo's `.zshrc`. Four of them duplicated a block the repo already carried, written with hardcoded absolute home paths instead of `$HOME`. One added its own `compinit` call after oh-my-zsh had already run one. Another relocated the existing block instead of editing it in place.
+
+**Why:** the repo's convention is one canonical `$HOME`-relative block per tool, and these appends violate it silently. Nothing fails loudly, so the drift only shows up in `git status` inside the dotfiles repo, which is easy to miss when installer output has just scrolled past.
+
+**How to apply:** Run `git status` in the dotfiles repo after every vendor installer, not once at the end of a batch, and revert the appended blocks through the editor. Prefer the repo's existing block over the installer's version. A tool whose installer targets a directory already on `PATH` needs no block at all.

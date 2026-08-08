@@ -1,0 +1,15 @@
+---
+description: macOS /usr/bin/rsync is openrsync (protocol 29); rejects GNU-only flags and can fail deep-directory sends to a GNU rsync receiver
+alwaysApply: false
+---
+
+# macOS Openrsync Gotchas
+
+macOS ships **openrsync** as `/usr/bin/rsync` (`rsync version 2.6.9 compatible`, protocol 29), not GNU rsync. Two failure modes that bit a transcript-migration task:
+
+- It rejects GNU-only flags such as `--info=stats2` (only `--stats` works). A script that assumes GNU rsync flags aborts immediately.
+- As the **sender** to a modern GNU rsync **receiver**, it can fail to transfer a deep, many-file directory: the receiver reports `mkstemp "...": failed: No such file or directory (2)` for every file because the parent dir was never created. Same-tool pulls (openrsync as receiver) and shallow trees are unaffected, so it passes small tests and fails on real data.
+
+**Why:** silent-looking flag/protocol mismatches turned a routine `rsync` into repeated partial-transfer failures; the fix was a different transport, not more flags.
+
+**How to apply:** for anything beyond a trivial local rsync on macOS, use GNU rsync (`brew install rsync` → `/opt/homebrew/bin/rsync`, protocol 32) by absolute path, or for host-to-host bridging pipe **GNU tar over ssh** (`ssh A 'tar -C base -czf - sub' | ssh B 'tar -C base --no-same-owner -xzf -'`), which both Linux ends handle correctly. Always gate a destructive move behind full per-file hashing, not size + sample. Related: [provision-remotes-by-git-clone](mdc:.cursor/rules/provision-remotes-by-git-clone.mdc).

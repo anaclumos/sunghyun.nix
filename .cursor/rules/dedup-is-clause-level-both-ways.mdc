@@ -1,0 +1,15 @@
+---
+description: Use when deduplicating one rules document against another, so every clause is tested individually rather than whole bullets deleted or kept, and completion claims match the verifier's ledger
+alwaysApply: false
+---
+
+# Dedup Is Clause Level Both Ways
+
+Hook corrections (2026-07-28, not owner rulings) during a rules-document dedup:
+
+1. A bullet deleted as duplicate carried one extra list item the owner document lacked.
+2. Kept bullets retained "anchor" clauses that restate the owner document's rule for the same scope, and the final report claimed the dedup complete anyway.
+
+**Why:** Rules differ at clause granularity while editing happens at bullet granularity. Deleting whole bullets drops rulings; keeping whole bullets preserves duplicates. Overclaiming ("deleted every duplicate") while a verifier ledger lists residuals is the worse half of the failure.
+
+**How to apply:** For every mixed bullet, test each clause, list item, and example against the owner document: same rule for the same scope is excised, unique clauses survive as a standalone line, and rules that merely share a theme across different surfaces stay whole. A single list item counts as content, so keep a trimmed line for anything the owner document lacks. Rewrite the surviving line so it stands without the duplicated anchor. Report deliberate retentions explicitly instead of claiming zero overlap. Afterward run a fresh three-way check (original, edited, owner document) asking what appears in neither, and reverify with a fresh reviewer after the fix round.
