@@ -32,6 +32,7 @@
             inherit inputs;
           };
           modules = [
+            ./nix/darwin/modules/agents.nix
             ./nix/darwin/modules/base.nix
             ./nix/darwin/modules/homebrew.nix
             ./nix/darwin/modules/defaults.nix
