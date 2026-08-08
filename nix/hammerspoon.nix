@@ -127,6 +127,37 @@ in
       hs.osascript.javascript(DARK_TOGGLE)
     end
 
+    local DISABLE_ASK_SIRI_ACTIVE_WINDOW = [=[
+    ObjC.import("Foundation");
+    function run() {
+      var suite = $.NSUserDefaults.alloc.initWithSuiteName("com.apple.symbolichotkeys");
+      var all = suite.objectForKey("AppleSymbolicHotKeys");
+      var mutable = all && !all.isNil()
+        ? $.NSMutableDictionary.dictionaryWithDictionary(all)
+        : $.NSMutableDictionary.dictionary;
+      var params = $.NSMutableArray.array;
+      params.addObject(32);
+      params.addObject(49);
+      params.addObject(1179648);
+      var value = $.NSMutableDictionary.dictionary;
+      value.setObjectForKey("standard", "type");
+      value.setObjectForKey(params, "parameters");
+      var entry = $.NSMutableDictionary.dictionary;
+      entry.setObjectForKey(false, "enabled");
+      entry.setObjectForKey(value, "value");
+      mutable.setObjectForKey(entry, "263");
+      suite.setObjectForKey(mutable, "AppleSymbolicHotKeys");
+      suite.synchronize();
+      $.NSTask.launchedTaskWithLaunchPathArguments(
+        "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings",
+        $.NSArray.arrayWithObject("-u")
+      );
+      return "ok";
+    }
+    ]=]
+
+    hs.osascript.javascript(DISABLE_ASK_SIRI_ACTIVE_WINDOW)
+
     local function openDefaultBrowser()
       local handler = hs.urlevent.getDefaultHandler("http")
       if handler then
