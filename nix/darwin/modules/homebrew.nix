@@ -155,11 +155,14 @@ in
       # cannot do. Linux gets nixpkgs cursor-cli from nix/home/linux.nix.
       "cursor-cli"
       "ghostty"
+      "iina"
       "itsycal"
       # Cask, not nix-darwin services.karabiner-elements: that module is broken
       # for KE >= 15 (nix-darwin#1041). NEVER `brew uninstall --cask
       # karabiner-elements`; it deletes the DriverKit dext Kanata and KE share.
       "karabiner-elements"
+      "linear"
+      "slack"
     ];
     # No masApps here on purpose: `brew bundle` hard-fails activation when the
     # App Store is signed out, so they converge from the daemon below instead.
