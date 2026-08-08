@@ -1,11 +1,14 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
   home = config.home.homeDirectory;
   subst = text: builtins.replaceStrings [ "HOME_DIR_PLACEHOLDER" ] [ home ] text;
   assets = ../../../assets;
+  hammerspoon = import ../../hammerspoon.nix { inherit lib; };
 in
 {
   imports = [ ../../home/portable.nix ];
+
+  home.file.".hammerspoon/init.lua".text = hammerspoon.initLua;
 
   # Karabiner-Elements live-reloads this file and refuses GUI edits against it,
   # which is the point: the repo is the only source of truth.
@@ -16,7 +19,6 @@ in
   );
   home.file.".config/sunghyun/kanata-passthrough.kbd".source =
     assets + "/kanata-passthrough.kbd";
-  home.file.".config/sunghyun/sunghyun.toml".source = assets + "/sunghyun.toml";
   home.file.".config/sunghyun/run-sunghyun.sh" = {
     text = subst (builtins.readFile (assets + "/run-sunghyun.sh"));
     executable = true;

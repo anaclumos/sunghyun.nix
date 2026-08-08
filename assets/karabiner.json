@@ -24,7 +24,7 @@
                 "from": { "key_code": "caps_lock", "modifiers": { "optional": ["any"] } },
                 "to": [{ "set_variable": { "name": "hyper", "value": 1 } }],
                 "to_after_key_up": [{ "set_variable": { "name": "hyper", "value": 0 } }],
-                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun tile maximize" }]
+                "to_if_alone": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile maximize" }]
               }
             ]
           },
@@ -35,31 +35,31 @@
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "left_arrow", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile left" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile left" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "right_arrow", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile right" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile right" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "up_arrow", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile top" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "down_arrow", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile bottom" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile bottom" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "return_or_enter", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile fullscreen" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile fullscreen" }]
               }
             ]
           },
@@ -70,25 +70,25 @@
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "1", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile first-fourth" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile first-fourth" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "2", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile second-fourth" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile second-fourth" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "3", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile third-fourth" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile third-fourth" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "4", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile last-fourth" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile last-fourth" }]
               },
               {
                 "type": "basic",
@@ -105,19 +105,19 @@
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "a", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun input-source ABC" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source ABC" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "b", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun input-source 2SetKorean" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source 2SetKorean" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "c", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile center" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile center" }]
               },
               {
                 "type": "basic",
@@ -135,73 +135,73 @@
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "h", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open mail" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open mail" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "i", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open iina" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open iina" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "j", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open-default-browser" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open-default-browser" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "k", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open music" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open music" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "l", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open calendar" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open calendar" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "m", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open kakaotalk" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open kakaotalk" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "n", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open slack" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open slack" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "p", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open preview" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open preview" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "r", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun open linear" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun open linear" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "v", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile top-left" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile top-left" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "w", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun tile last-three-fourths" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun tile last-three-fourths" }]
               },
               {
                 "type": "basic",
                 "conditions": [{ "type": "variable_if", "name": "hyper", "value": 1 }],
                 "from": { "key_code": "grave_accent_and_tilde", "modifiers": { "optional": ["any"] } },
-                "to": [{ "shell_command": "/usr/local/bin/sunghyun toggle-dark-mode" }]
+                "to": [{ "shell_command": "/run/current-system/sw/bin/sunghyun toggle-dark-mode" }]
               }
             ]
           },
@@ -225,13 +225,13 @@
                 "type": "basic",
                 "from": { "key_code": "left_command", "modifiers": { "optional": ["any"] } },
                 "to": [{ "key_code": "left_command", "lazy": true }],
-                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun input-source ABC" }]
+                "to_if_alone": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source ABC" }]
               },
               {
                 "type": "basic",
                 "from": { "key_code": "right_command", "modifiers": { "optional": ["any"] } },
                 "to": [{ "key_code": "right_command", "lazy": true }],
-                "to_if_alone": [{ "shell_command": "/usr/local/bin/sunghyun input-source 2SetKorean" }]
+                "to_if_alone": [{ "shell_command": "/run/current-system/sw/bin/sunghyun input-source 2SetKorean" }]
               }
             ]
           },

@@ -3,7 +3,7 @@
 # detect headless and skip IME/tile/open. Re-enter the console user's GUI
 # bootstrap namespace first.
 set -euo pipefail
-bin=/usr/local/bin/sunghyun
+bin=/run/current-system/sw/bin/sunghyun
 if [[ ! -x $bin ]]; then
   bin=$(command -v sunghyun)
 fi

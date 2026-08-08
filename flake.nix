@@ -44,6 +44,7 @@
             ./nix/darwin/modules/homebrew.nix
             ./nix/darwin/modules/kanata.nix
             ./nix/darwin/modules/defaults.nix
+            ./nix/darwin/modules/hammerspoon.nix
             ./nix/darwin/modules/hotkeys.nix
             ./nix/darwin/modules/sunghyun.nix
             inputs.tokenmaxxing.darwinModules.withOverlay
@@ -102,15 +103,9 @@
       packages.${system} = {
         default = self.darwinConfigurations.auracomputer.system;
         darwin-auracomputer = self.darwinConfigurations.auracomputer.system;
-        sunghyun = nixpkgs.legacyPackages.${system}.rustPlatform.buildRustPackage {
-          pname = "sunghyun";
-          version = "0.1.0";
-          src = self;
-          cargoLock.lockFile = ./Cargo.lock;
-          # Tests probe live TCC/launchctl surfaces; run them via cargo, not in
-          # the Nix sandbox.
-          doCheck = false;
-          meta.mainProgram = "sunghyun";
+        sunghyun = import ./nix/sunghyun {
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit (nixpkgs.legacyPackages.${system}) lib;
         };
       };
 
