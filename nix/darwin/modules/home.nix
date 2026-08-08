@@ -21,6 +21,8 @@ in
     text = subst (builtins.readFile (assets + "/run-sunghyun.sh"));
     executable = true;
   };
+  home.file.".config/ghostty/config".source = assets + "/dotfiles/ghostty/config";
+
   home.file.".config/sunghyun/Brewfile".source = assets + "/Brewfile";
   home.file.".config/sunghyun/manifest.toml".source = assets + "/manifest.toml";
 }

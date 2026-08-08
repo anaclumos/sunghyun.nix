@@ -1,0 +1,3 @@
+working-directory = ~/Developer
+unfocused-split-opacity=1
+term = xterm-256color
