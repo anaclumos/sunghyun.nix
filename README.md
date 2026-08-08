@@ -29,6 +29,7 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake ~/Developer/sung
 |---|---|
 | `flake.nix` | `darwinConfigurations.{auracomputer,default}`, per-arch `homeConfigurations`, checks, formatter; inputs [sunghyun-sans](https://github.com/anaclumos/sunghyun-sans) and [tokenmaxxing](https://github.com/anaclumos/tokenmaxxing) |
 | `nix/darwin/hosts/` | `auracomputer.nix` names the machine; `default.nix` names nothing |
+| `nix/darwin/modules/agents.nix` | The nix half of the layered agent config: Codex system `config.toml` and Claude Code managed settings (row au) |
 | `nix/darwin/modules/base.nix` | primaryUser, `nixpkgs.config.allowUnfree`, `nix.enable = false`, Touch ID sudo, fonts |
 | `nix/darwin/modules/homebrew.nix` | Taps, brews, casks, `masApps`, `cleanup = "uninstall"` with the karabiner-elements eval assertion |
 | `nix/darwin/modules/defaults.nix` | Every `system.defaults` key, including `CustomUserPreferences` for Finder desktop view and KakaoTalk language |
@@ -92,6 +93,7 @@ Kanata is retired (2026-08-08): the opt-in daemon was default-off, never enabled
 
 - Homebrew converges on activation (`brew bundle`). `masApps` rides the same Brewfile and needs a signed-in App Store; this machine is signed in and every declared app is installed, so the lines no-op. A fresh signed-out machine fails those lines; sign in and switch again.
 - Two one-time human toggles on a fresh machine, each raised by macOS itself: the Karabiner grabber grants at first launch, and Accessibility for Hammerspoon. Both attach to the app bundle, so they survive every rebuild.
+- One one-time root command on a fresh machine bridges Claude Code's managed settings to the nix-managed file (row au): `sudo ln -s /etc/claude-code "/Library/Application Support/ClaudeCode"`.
 - Sign-in is never automated (Apple ID, Tailscale, OrbStack, Vercel, PlanetScale, Stripe, gcloud, Sentry, Resend, cursor-agent). Install, then let the owner's session take over.
 - No nix-darwin options exist for TCC grants, system-extension approval, or App Store sign-in (checked against the full manual 2026-08-07; `TCC.db` is SIP-protected, PPPC profiles are MDM-only).
 
@@ -151,6 +153,7 @@ Everything here is a desired result, not a stack (owner reframing 2026-08-07). I
 | ar | Menu bar auto-hide is Never, desktop and fullscreen | `_HIHideMenuBar = false` plus `CustomUserPreferences` `AppleMenuBarVisibleInFullscreen` and controlcenter `AutoHideMenuBarOption = 3`; typed `controlcenter` writes ByHost only and cannot reach that domain |
 | as | OrbStack, dotenvx, Vercel, pscale, Stripe CLIs present | Casks/brews where the vendor channel works: `orbstack`, `vercel`, `pscale`, `stripe-cli`. dotenvx from nixpkgs: its only brew source is a third-party tap that macOS 27 Homebrew refuses while Xcode trails the CLT |
 | at | gcloud, sentry, inngest, mint, resend CLIs present | nixpkgs `google-cloud-sdk` (the `gcloud-cli` cask is broken, see [Packages](#packages)); tap formula `getsentry/tools/sentry` with the `sentry-cli` redirect alias; nixpkgs `bun` and `inngest`; `resend` from `nix/pkgs/resend-cli.nix`. mint is a manual `bun add --global mint` (installed live 2026-08-08): keytar needs prebuilds nixpkgs clang cannot build, and activation hooks are banned, so no machinery converges it |
+| au | Agent settings are layered: nix owns the baseline, each tool keeps writing its own on-the-fly edits, in separate files (owner 2026-08-08, reviving the settings baselines from the retired anaclumos/configs instructions pages) | `nix/darwin/modules/agents.nix` via `environment.etc`. Codex: `/etc/codex/config.toml` is the system layer codex merges below the user's `~/.codex/config.toml` and never writes; trust entries, plugin toggles and model picks keep landing in the user file and win per key (verified against the rust-v0.147.0 loader source). Claude Code: `/etc/claude-code/managed-settings.json` carries the managed baseline, bridged on macOS by the one-time symlink under [Permissions](#permissions-gui-mac) since Claude Code reads managed settings from `/Library/Application Support/ClaudeCode`; the tool only ever writes `~/.claude/settings.json`. Managed keys win conflicts, and `model` stays switchable in-session because a managed model is a startup default only. Linux homes carry neither `/etc` layer, Home Manager has no root there |
 
 ## Design notes
 
