@@ -23,4 +23,3 @@ source "$ZSH_CONFIG_HOME/rc/integrations.zsh"
 
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
-export PATH="$HOME/.config/tokenmaxxing/bin:$PATH" # tokenmaxxing PATH
