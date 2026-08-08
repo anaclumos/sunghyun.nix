@@ -1,9 +1,14 @@
-{ ... }:
+{ pkgs, ... }:
 let
   zsh = ../../assets/dotfiles/zsh;
 in
 {
   home.stateVersion = "26.05";
+
+  # nixpkgs and not homebrew.brews: this one entry covers macOS and the Linux
+  # home configs alike, and btop has no vendor self-update channel that would
+  # need a writable install like cursor-cli does.
+  home.packages = [ pkgs.btop ];
 
   home.file.".hushlogin".text = "";
 

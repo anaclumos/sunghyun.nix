@@ -17,6 +17,7 @@ cmd_verify() {
   check_coding_cli claude claude claude-code
   check_agent_guides
   check_tokenmaxxing
+  check_btop
   check_aside
   check_tailscale
   check_default_browser
@@ -124,6 +125,18 @@ check_tokenmaxxing() {
     step ok tokenmaxxing "tokenmaxxing present ($found)"
   else
     step failed tokenmaxxing "tokenmaxxing missing; the github:anaclumos/tokenmaxxing flake input should have installed it"
+  fi
+}
+
+# OUTCOMES.md row ao: btop comes from nixpkgs through the shared home layer,
+# never Homebrew, so the per-user profile dirs plus PATH are the only probes.
+check_btop() {
+  local found
+  if found="$(first_existing "/etc/profiles/per-user/$USER/bin/btop" "$HOME/.nix-profile/bin/btop")" ||
+    found="$(command -v btop 2>/dev/null)"; then
+    step ok btop "btop present ($found)"
+  else
+    step failed btop "btop missing; nixpkgs btop in nix/home/portable.nix should have installed it"
   fi
 }
 
