@@ -42,6 +42,7 @@ cmd_verify() {
   check_spotlight_clipboard
   check_terminal_alias
   check_menubar
+  check_menu_bar_autohide
   check_accessibility
   check_input_monitoring
   check_fonts
@@ -536,6 +537,24 @@ check_menubar() {
     step ok menubar "Time Machine + Cursor hidden from menu bar"
   else
     step failed menubar "menu bar extras still visible (Time Machine hidden=$tm, Cursor tray hidden=$cursor); run \`sunghyun post-switch\` (menubar step)"
+  fi
+}
+
+# OUTCOMES.md row ar: Automatically hide and show the menu bar → Never.
+# Classic GlobalPreferences pair plus the Control Center four-way enum.
+check_menu_bar_autohide() {
+  if is_headless; then
+    step skipped menu_bar_autohide "menu bar autohide needs a GUI macOS session"
+    return
+  fi
+  local hide fullscreen option
+  hide="$(defaults_read -g _HIHideMenuBar || echo unset)"
+  fullscreen="$(defaults_read -g AppleMenuBarVisibleInFullscreen || echo unset)"
+  option="$(defaults_read com.apple.controlcenter AutoHideMenuBarOption || echo unset)"
+  if [ "$hide" = 0 ] && [ "$fullscreen" = 1 ] && [ "$option" = 3 ]; then
+    step ok menu_bar_autohide "Never (_HIHideMenuBar=0, AppleMenuBarVisibleInFullscreen=1, AutoHideMenuBarOption=3)"
+  else
+    step failed menu_bar_autohide "_HIHideMenuBar=$hide, AppleMenuBarVisibleInFullscreen=$fullscreen, AutoHideMenuBarOption=$option; expected 0/1/3 (Never)"
   fi
 }
 

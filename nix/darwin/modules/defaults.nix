@@ -97,6 +97,10 @@ in
       AppleTemperatureUnit = "Celsius";
       AppleMeasurementUnits = "Centimeters";
       AppleMetricUnits = 1;
+      # Automatically hide and show the menu bar → Never. This is only the
+      # desktop half; full-screen visibility is a separate key below, and on
+      # macOS 15+ Control Center also stores the four-way enum.
+      _HIHideMenuBar = false;
     };
     # Bare fn tap only; fn-as-modifier chords ride HIDFKeyMode, not this key.
     # A running session keeps the old tap behaviour until the next login.
@@ -116,6 +120,17 @@ in
       show-recents = false;
     };
     CustomUserPreferences = {
+      # No typed option at the pinned nix-darwin rev. Never needs both halves
+      # of the classic pair, otherwise Settings lands on In Full Screen Only.
+      NSGlobalDomain = {
+        AppleMenuBarVisibleInFullscreen = true;
+      };
+      # macOS 15+/Tahoe Settings UI reads this enum (0 Always, 1 On Desktop
+      # Only, 2 In Full Screen Only, 3 Never). Typed system.defaults.controlcenter
+      # writes the ByHost domain; this key lives in the non-ByHost plist.
+      "com.apple.controlcenter" = {
+        AutoHideMenuBarOption = 3;
+      };
       "com.apple.systemuiserver" = {
         "NSStatusItem VisibleCC com.apple.menuextra.TimeMachine" = false;
         "NSStatusItem Visible com.apple.menuextra.TimeMachine" = false;
