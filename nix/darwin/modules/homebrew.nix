@@ -163,6 +163,9 @@ in
       "karabiner-elements"
       "linear"
       "slack"
+      # Dia. Official homebrew/cask token, so no tap trust grant is in play and
+      # an untrusted tap cannot abort the bundle run on a fresh machine.
+      "thebrowsercompany-dia"
     ];
     # No masApps here on purpose: `brew bundle` hard-fails activation when the
     # App Store is signed out, so they converge from the daemon below instead.

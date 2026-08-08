@@ -34,6 +34,7 @@ fn gate_table() -> Vec<(&'static str, fn(&StepContext) -> StepOutcome)> {
         ("karabiner_driverkit", steps::step_karabiner_driverkit),
         ("keyboard_engine", steps::step_keyboard_engine),
         ("accessibility", steps::step_accessibility),
+        ("default_browser", steps::step_default_browser),
         ("spotlight", steps::step_spotlight),
         ("menubar", steps::step_menubar),
         ("cua_driver", steps::step_cua_driver),

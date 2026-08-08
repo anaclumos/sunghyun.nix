@@ -10,6 +10,8 @@
 use super::sudo_keepalive::run_root;
 use super::BootstrapManifest;
 use crate::ax::{self, AxGateOutcome};
+use crate::default_browser;
+use crate::error::ActionError;
 use crate::headless;
 use crate::kanata_ctl;
 use crate::menubar;
@@ -242,6 +244,27 @@ pub fn step_keyboard_engine(ctx: &StepContext) -> StepOutcome {
         "Karabiner-Elements grabber not up within 120s; approve the OS prompts, it converges automatically"
             .into(),
     )
+}
+
+/// Dia as the default browser. macOS owns the confirmation panel for this
+/// change and there is no declarative path to it, so this behaves like the TCC
+/// gates: trigger the system's own panel, bring it forward, poll, and treat an
+/// unanswered panel as a skip that the next switch retries.
+pub fn step_default_browser(ctx: &StepContext) -> StepOutcome {
+    if cfg!(not(target_os = "macos")) {
+        return StepOutcome::Skipped("default browser step is macOS-only".into());
+    }
+    if ctx.headless || headless::is_headless() {
+        return StepOutcome::Skipped("default browser skipped (headless)".into());
+    }
+    if ctx.dry_run {
+        return StepOutcome::Skipped("would ask macOS to make Dia the default browser".into());
+    }
+    match default_browser::converge(default_browser::DIA_BUNDLE_ID, Duration::from_secs(120)) {
+        Ok(msg) => StepOutcome::Ok(msg),
+        Err(ActionError::Skipped(m)) => StepOutcome::Skipped(m),
+        Err(e) => StepOutcome::Failed(e.to_string()),
+    }
 }
 
 /// Spotlight ⌘Space (symbolichotkeys id 64) stays imperative on purpose:

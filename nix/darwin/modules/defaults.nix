@@ -1,21 +1,112 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   # Apple's media top row is the base state, so Karabiner has to invert only
   # the few keys that must stay function keys; the opposite base state would
   # need a manipulator for every other key in the row.
   standardFunctionKeys = false;
   primaryUser = config.system.primaryUser;
+
+  # Item info and label position live inside
+  # com.apple.finder → DesktopViewSettings → IconViewSettings, and `defaults
+  # write` has no key path, so the only faithful edit is read the dictionary,
+  # change the two leaves, write it back. `defaults export` (not `defaults
+  # read`) because the old-style text output loses every type: round-tripping
+  # it turns iconSize and the booleans into strings.
+  desktopViewConverge = pkgs.writeShellScript "sunghyun-desktop-view" ''
+    set -u
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+    read_flag() {
+      /usr/bin/defaults export com.apple.finder - 2>/dev/null \
+        | /usr/bin/plutil -extract "DesktopViewSettings.IconViewSettings.$1" raw -o - - 2>/dev/null
+    }
+
+    if [ "$(read_flag showItemInfo)" = "true" ] && [ "$(read_flag labelOnBottom)" = "false" ]; then
+      exit 0
+    fi
+
+    tmp="$(/usr/bin/mktemp -t sunghyun-desktop-view)" || exit 0
+    trap 'rm -f "$tmp" "$tmp.sub"' EXIT
+
+    if /usr/bin/defaults export com.apple.finder "$tmp" 2>/dev/null \
+      && /usr/bin/plutil -extract DesktopViewSettings xml1 -o /dev/null "$tmp" 2>/dev/null; then
+      for pair in "showItemInfo true" "labelOnBottom false"; do
+        key="''${pair%% *}"
+        value="''${pair##* }"
+        /usr/libexec/PlistBuddy -c \
+          "Set :DesktopViewSettings:IconViewSettings:$key $value" "$tmp" >/dev/null 2>&1 \
+          || /usr/libexec/PlistBuddy -c \
+            "Add :DesktopViewSettings:IconViewSettings:$key bool $value" "$tmp" >/dev/null 2>&1
+      done
+      /usr/bin/plutil -extract DesktopViewSettings xml1 -o "$tmp.sub" "$tmp" 2>/dev/null || exit 0
+      /usr/bin/defaults write com.apple.finder DesktopViewSettings "$(/bin/cat "$tmp.sub")" || exit 0
+    else
+      # No Desktop view settings yet (fresh account): nothing to preserve, and
+      # Finder fills the keys it is not given.
+      /usr/bin/defaults write com.apple.finder DesktopViewSettings -dict-add IconViewSettings \
+        '<dict><key>showItemInfo</key><true/><key>labelOnBottom</key><false/></dict>' || exit 0
+    fi
+
+    # cfprefsd hands Finder a cached copy; without the restart Finder can flush
+    # its old copy back over this write.
+    /usr/bin/killall Finder 2>/dev/null || true
+    echo "sunghyun: desktop icons show item info with labels on the right"
+  '';
+
+  # KakaoTalk ships en/ja/ko and must run Korean whatever the system language
+  # is. Same shape as the Applications list in Language & Region, which writes
+  # AppleLanguages into the app's own preference domain. KakaoTalk comes from
+  # the App Store and is sandboxed, so that domain redirects into its container
+  # and a write can be refused; never fail a switch over it.
+  appLanguageConverge = pkgs.writeShellScript "sunghyun-app-language" ''
+    set -u
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+    if [ ! -d /Applications/KakaoTalk.app ]; then
+      echo "sunghyun: KakaoTalk absent; language override skipped (converges after mas installs it)"
+      exit 0
+    fi
+    if [ "$(/usr/bin/defaults read com.kakao.KakaoTalkMac AppleLanguages 2>/dev/null | /usr/bin/tr -d ' \n"()')" = "ko" ]; then
+      exit 0
+    fi
+    if /usr/bin/defaults write com.kakao.KakaoTalkMac AppleLanguages -array ko 2>/dev/null; then
+      echo "sunghyun: KakaoTalk set to Korean"
+    else
+      echo >&2 "sunghyun: WARNING KakaoTalk's sandbox container refused the language write; Language & Region owns it on this machine"
+    fi
+  '';
 in
 {
   system.defaults = {
     NSGlobalDomain = {
       "com.apple.keyboard.fnState" = standardFunctionKeys;
+      # Three separate keys, all read by macOS: setting only some leaves
+      # Settings metric while formatters stay imperial. AppleMetricUnits is an
+      # integer enum at this nix-darwin revision, not a boolean.
+      AppleTemperatureUnit = "Celsius";
+      AppleMeasurementUnits = "Centimeters";
+      AppleMetricUnits = 1;
     };
     # Bare fn tap only; fn-as-modifier chords ride HIDFKeyMode, not this key.
     # A running session keeps the old tap behaviour until the next login.
     hitoolbox.AppleFnUsageType = "Show Emoji & Symbols";
     # 0 = when space allows, 1 = always, 2 = never.
     menuExtraClock.ShowDate = 2;
+    finder.ShowHardDrivesOnDesktop = true;
+    # `[ ]` and not the default `null`: nix-darwin filters null options out of
+    # the `defaults write` list, so null means unmanaged while an empty list is
+    # written as an empty array. Finder and the Trash are Dock fixtures rather
+    # than preferences, so an empty Dock still shows both.
+    dock = {
+      persistent-apps = [ ];
+      persistent-others = [ ];
+      show-recents = false;
+    };
     CustomUserPreferences = {
       "com.apple.systemuiserver" = {
         "NSStatusItem VisibleCC com.apple.menuextra.TimeMachine" = false;
@@ -36,5 +127,10 @@ in
       --standard-function-keys ${lib.boolToString standardFunctionKeys}; then
       echo >&2 "sunghyun: WARNING could not set HIDFKeyMode; the top row converges at next login"
     fi
+
+    for script in ${desktopViewConverge} ${appLanguageConverge}; do
+      launchctl asuser "$(id -u -- ${lib.escapeShellArg primaryUser})" \
+        sudo --user=${lib.escapeShellArg primaryUser} -- "$script" || true
+    done
   '';
 }

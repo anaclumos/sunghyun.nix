@@ -27,7 +27,7 @@ pub fn open_default_browser() -> ActionResult {
                 "default browser skipped in headless (no GUI session)",
             ));
         }
-        if let Some(bundle_id) = macos_default_http_handler() {
+        if let Some(bundle_id) = crate::default_browser::current_handler() {
             return open_bundle_id(&bundle_id);
         }
         run_open(&["https://"])
@@ -96,33 +96,6 @@ pub fn open_by_name(name: &str) -> ActionResult {
     {
         let _ = name;
         Err(ActionError::skipped("open unsupported on this OS"))
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn macos_default_http_handler() -> Option<String> {
-    use core_foundation::base::TCFType;
-    use core_foundation::string::CFString;
-    use core_foundation_sys::string::CFStringRef;
-
-    #[link(name = "CoreServices", kind = "framework")]
-    extern "C" {
-        fn LSCopyDefaultHandlerForURLScheme(inURLScheme: CFStringRef) -> CFStringRef;
-    }
-
-    unsafe {
-        let scheme = CFString::new("http");
-        let handler_ref = LSCopyDefaultHandlerForURLScheme(scheme.as_concrete_TypeRef());
-        if handler_ref.is_null() {
-            return None;
-        }
-        let handler = CFString::wrap_under_create_rule(handler_ref);
-        let id = handler.to_string();
-        if id.is_empty() {
-            None
-        } else {
-            Some(id)
-        }
     }
 }
 

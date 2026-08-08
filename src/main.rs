@@ -3,6 +3,7 @@ mod assets;
 mod ax;
 mod bootstrap;
 mod config;
+mod default_browser;
 mod dispatch;
 mod error;
 mod fn_state;
@@ -54,6 +55,11 @@ enum Commands {
     OpenDefaultBrowser,
     /// Flip the system appearance between light and dark (Hyper+`)
     ToggleDarkMode,
+    /// Report, or ask macOS to change, the default web browser
+    DefaultBrowser {
+        #[command(subcommand)]
+        cmd: DefaultBrowserCmd,
+    },
     /// Switch input source (ABC / 2SetKorean / raw TIS id)
     InputSource { name: String },
     /// Tile the focused window
@@ -111,6 +117,21 @@ enum Commands {
     /// Single source of truth for the VM gate: the mas convergence
     /// LaunchDaemon calls this instead of re-implementing the sysctl probe.
     Virt,
+}
+
+#[derive(Subcommand, Debug)]
+enum DefaultBrowserCmd {
+    /// Print the bundle id currently registered for http
+    Status,
+    /// Ask macOS to make an app the default; macOS raises its own confirmation panel
+    Set {
+        /// Bundle id. Defaults to Dia.
+        #[arg(long, default_value = default_browser::DIA_BUNDLE_ID)]
+        bundle_id: String,
+        /// Seconds to wait for the confirmation panel to be answered
+        #[arg(long, default_value_t = 120)]
+        timeout: u64,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -222,6 +243,32 @@ fn main() -> ExitCode {
         Commands::ToggleDarkMode => {
             action_exit(cli.config.as_deref(), |_cfg| actions::appearance::toggle())
         }
+        Commands::DefaultBrowser { cmd } => match cmd {
+            DefaultBrowserCmd::Status => {
+                match default_browser::current_handler() {
+                    Some(id) => println!("default_browser={id}"),
+                    None => println!("default_browser=unknown"),
+                }
+                ExitCode::SUCCESS
+            }
+            DefaultBrowserCmd::Set { bundle_id, timeout } => {
+                match default_browser::converge(&bundle_id, std::time::Duration::from_secs(timeout))
+                {
+                    Ok(msg) => {
+                        println!("{msg}");
+                        ExitCode::SUCCESS
+                    }
+                    Err(error::ActionError::Skipped(m)) => {
+                        eprintln!("skipped: {m}");
+                        ExitCode::SUCCESS
+                    }
+                    Err(e) => {
+                        eprintln!("{e}");
+                        ExitCode::FAILURE
+                    }
+                }
+            }
+        },
         Commands::InputSource { name } => action_exit(cli.config.as_deref(), |cfg| {
             actions::input_source::switch(cfg, &name)
         }),

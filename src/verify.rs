@@ -42,6 +42,12 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_cursor_agent());
     steps.push(check_coding_cli("codex", "codex", "codex"));
     steps.push(check_coding_cli("claude", "claude", "claude-code"));
+    steps.push(check_dia());
+    steps.push(check_default_browser());
+    steps.push(check_dock());
+    steps.push(check_desktop_icons());
+    steps.push(check_locale_units());
+    steps.push(check_kakaotalk_language());
     steps.push(check_ime_mapping(&config));
     steps.push(check_apps(&config));
     steps.push(check_tiles());
@@ -70,7 +76,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
 fn check_binary_features() -> StepReport {
     StepReport::ok(
         "binary",
-        "features: open,input-source,tile,launcher,clipboard,verify,post-switch,kanata,virt",
+        "features: open,default-browser,input-source,tile,launcher,clipboard,verify,post-switch,kanata,virt",
     )
 }
 
@@ -162,6 +168,207 @@ fn check_coding_cli(id: &'static str, binary: &str, package: &str) -> StepReport
         None => StepReport::failed(
             id,
             format!("{binary} missing; the {package} cask (macOS) / nixpkgs {package} (Linux) should have installed it"),
+        ),
+    }
+}
+
+/// `defaults read`, trimmed. None when the key or the whole domain is absent,
+/// which for a sandboxed app also covers "container not readable from here".
+fn defaults_read(args: &[&str]) -> Option<String> {
+    let output = Command::new("/usr/bin/defaults")
+        .arg("read")
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text)
+    }
+}
+
+/// A nested value out of a user preference domain, as a raw scalar. `defaults
+/// read` cannot address a key path and its old-style output loses types, so
+/// this exports the typed plist and extracts through it.
+fn defaults_extract(domain: &str, key_path: &str) -> Option<String> {
+    let export = Command::new("/usr/bin/defaults")
+        .args(["export", domain, "-"])
+        .output()
+        .ok()?;
+    if !export.status.success() {
+        return None;
+    }
+    let mut child = Command::new("/usr/bin/plutil")
+        .args(["-extract", key_path, "raw", "-o", "-", "-"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
+    use std::io::Write;
+    child.stdin.as_mut()?.write_all(&export.stdout).ok()?;
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+/// OUTCOMES.md row aa: Dia present. Installed by the `thebrowsercompany-dia`
+/// Homebrew cask, which is an official homebrew/cask token.
+fn check_dia() -> StepReport {
+    if cfg!(not(target_os = "macos")) {
+        return StepReport::skipped("dia", "Dia is macOS-only");
+    }
+    if std::path::Path::new("/Applications/Dia.app").exists() {
+        StepReport::ok("dia", "/Applications/Dia.app present")
+    } else if headless::is_headless() {
+        StepReport::skipped("dia", "Dia absent (headless; the cask installs it on a GUI Mac)")
+    } else {
+        StepReport::failed(
+            "dia",
+            "Dia missing; the thebrowsercompany-dia cask should have installed it",
+        )
+    }
+}
+
+/// OUTCOMES.md row ab: Dia is the system default browser, so Hyper+J opens it.
+fn check_default_browser() -> StepReport {
+    if cfg!(not(target_os = "macos")) {
+        return StepReport::skipped("default_browser", "default browser is macOS-only");
+    }
+    match crate::default_browser::current_handler() {
+        Some(id) if id.eq_ignore_ascii_case(crate::default_browser::DIA_BUNDLE_ID) => {
+            StepReport::ok("default_browser", format!("http handler is Dia ({id})"))
+        }
+        Some(id) if headless::is_headless() => StepReport::skipped(
+            "default_browser",
+            format!("http handler is {id} (headless; the confirmation panel needs a GUI session)"),
+        ),
+        Some(id) => StepReport::failed(
+            "default_browser",
+            format!("http handler is {id}; run `sunghyun default-browser set` and answer macOS's panel"),
+        ),
+        None => StepReport::skipped("default_browser", "LaunchServices reports no http handler"),
+    }
+}
+
+/// OUTCOMES.md row ac: the Dock holds nothing but its permanent fixtures.
+/// Finder and the Trash are not preferences and cannot be removed.
+fn check_dock() -> StepReport {
+    if cfg!(not(target_os = "macos")) || headless::is_headless() {
+        return StepReport::skipped("dock", "Dock state needs a GUI macOS session");
+    }
+    let pinned = |key: &str| {
+        defaults_read(&["com.apple.dock", key])
+            .map(|t| t.matches("tile-data").count())
+            .unwrap_or(0)
+    };
+    let apps = pinned("persistent-apps");
+    let others = pinned("persistent-others");
+    let recents = defaults_read(&["com.apple.dock", "show-recents"])
+        .map(|t| t == "0")
+        .unwrap_or(false);
+    if apps == 0 && others == 0 && recents {
+        StepReport::ok("dock", "Dock empty except Finder and the Trash")
+    } else {
+        StepReport::failed(
+            "dock",
+            format!("Dock still pinned: {apps} apps, {others} others, show-recents off={recents}"),
+        )
+    }
+}
+
+/// OUTCOMES.md row ad: hard disks on the Desktop, item info under each icon,
+/// labels to the right.
+fn check_desktop_icons() -> StepReport {
+    if cfg!(not(target_os = "macos")) || headless::is_headless() {
+        return StepReport::skipped("desktop_icons", "Desktop icons need a GUI macOS session");
+    }
+    let disks = defaults_read(&["com.apple.finder", "ShowHardDrivesOnDesktop"])
+        .map(|t| t == "1")
+        .unwrap_or(false);
+    let item_info = defaults_extract(
+        "com.apple.finder",
+        "DesktopViewSettings.IconViewSettings.showItemInfo",
+    );
+    let label_bottom = defaults_extract(
+        "com.apple.finder",
+        "DesktopViewSettings.IconViewSettings.labelOnBottom",
+    );
+    if disks && item_info.as_deref() == Some("true") && label_bottom.as_deref() == Some("false") {
+        StepReport::ok(
+            "desktop_icons",
+            "hard disks shown, item info on, labels on the right",
+        )
+    } else {
+        StepReport::failed(
+            "desktop_icons",
+            format!(
+                "hard disks={disks}, showItemInfo={}, labelOnBottom={}",
+                item_info.unwrap_or_else(|| "unset".into()),
+                label_bottom.unwrap_or_else(|| "unset".into())
+            ),
+        )
+    }
+}
+
+/// OUTCOMES.md row ae: Celsius and metric. macOS reads three separate keys and
+/// disagrees with itself when only some are set.
+fn check_locale_units() -> StepReport {
+    if cfg!(not(target_os = "macos")) || headless::is_headless() {
+        return StepReport::skipped("locale_units", "locale units need a GUI macOS session");
+    }
+    let temp = defaults_read(&["-g", "AppleTemperatureUnit"]);
+    let measure = defaults_read(&["-g", "AppleMeasurementUnits"]);
+    let metric = defaults_read(&["-g", "AppleMetricUnits"]);
+    if temp.as_deref() == Some("Celsius")
+        && measure.as_deref() == Some("Centimeters")
+        && metric.as_deref() == Some("1")
+    {
+        StepReport::ok("locale_units", "Celsius, Centimeters, metric")
+    } else {
+        StepReport::failed(
+            "locale_units",
+            format!(
+                "AppleTemperatureUnit={}, AppleMeasurementUnits={}, AppleMetricUnits={}",
+                temp.unwrap_or_else(|| "unset".into()),
+                measure.unwrap_or_else(|| "unset".into()),
+                metric.unwrap_or_else(|| "unset".into())
+            ),
+        )
+    }
+}
+
+/// OUTCOMES.md row af: KakaoTalk runs in Korean whatever the system language
+/// is. It is a sandboxed App Store app, so its preference domain redirects
+/// into a container that only the app and Language & Region can be sure of
+/// reading; an unreadable container is a skip, not a failure.
+fn check_kakaotalk_language() -> StepReport {
+    if cfg!(not(target_os = "macos")) {
+        return StepReport::skipped("kakaotalk_language", "per-app language is macOS-only");
+    }
+    if headless::is_headless() || !std::path::Path::new("/Applications/KakaoTalk.app").exists() {
+        return StepReport::skipped(
+            "kakaotalk_language",
+            "KakaoTalk not installed here (mas converges it later)",
+        );
+    }
+    match defaults_read(&["com.kakao.KakaoTalkMac", "AppleLanguages"]) {
+        Some(text) if text.contains("ko") => {
+            StepReport::ok("kakaotalk_language", "KakaoTalk AppleLanguages = ko")
+        }
+        Some(text) => StepReport::failed(
+            "kakaotalk_language",
+            format!("KakaoTalk AppleLanguages = {}", text.replace('\n', " ")),
+        ),
+        None => StepReport::skipped(
+            "kakaotalk_language",
+            "KakaoTalk's sandbox container is not readable from here; Language & Region owns the value",
         ),
     }
 }
