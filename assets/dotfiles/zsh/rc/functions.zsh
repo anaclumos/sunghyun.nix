@@ -257,8 +257,9 @@ EOF
     _build_run_step "$dry_run" "cho.sh usage push" zsh -c "cd ${cho_usage_push:h} && bun run ${cho_usage_push:t}" || exit_code=1
   fi
 
-  # Separate writer from the push above, gated on its own key.
-  local cho_app="${CHO_SH_APP:-${HOME}/Developer/cho.sh/app}"
+  # Starcovery Team Admin (CURSOR_MANAGEMENT_KEY) + browser CSVs for the personal
+  # account (local) and TwelveLabs (ssh). Repo root holds scripts/ and package.json.
+  local cho_app="${CHO_SH_APP:-${HOME}/Developer/cho-sh}"
   local cho_cursor_push="${cho_app}/scripts/cursor-usage-push.ts"
   local cho_cursor_export="${ZSH_CONFIG_HOME}/bin/cursor-usage-export.py"
   if [[ -n "${CURSOR_MANAGEMENT_KEY:-}" ]] && [[ -f "$cho_cursor_push" ]] && [[ -f "$cho_cursor_export" ]] && command -v bun >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then

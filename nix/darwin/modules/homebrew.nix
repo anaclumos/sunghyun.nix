@@ -26,6 +26,7 @@
       "mole"
       "pscale"
       "ripgrep"
+      "rsync"
       "scc"
       "getsentry/tools/sentry"
       "stripe-cli"

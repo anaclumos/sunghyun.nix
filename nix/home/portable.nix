@@ -1,6 +1,7 @@
 { pkgs, ... }:
 let
   zsh = ../../assets/dotfiles/zsh;
+  ssh = ../../assets/dotfiles/ssh;
 in
 {
   home.stateVersion = "26.05";
@@ -13,6 +14,7 @@ in
     pkgs.dotenvx
     pkgs.google-cloud-sdk
     pkgs.inngest
+    pkgs.rsync
     (pkgs.callPackage ../pkgs/resend-cli.nix { })
   ];
 
@@ -26,6 +28,8 @@ in
   home.file.".config/zsh/lib".source = zsh + "/lib";
   home.file.".config/zsh/rc".source = zsh + "/rc";
   home.file.".config/zsh/bin".source = zsh + "/bin";
+
+  home.file.".ssh/config".source = ssh + "/config";
 
   home.file.".claude/CLAUDE.md".source = ../../AGENTS.md;
   home.file.".codex/AGENTS.md".source = ../../AGENTS.md;

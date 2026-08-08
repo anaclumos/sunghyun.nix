@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { hostname } from 'node:os'
 import { promisify } from 'node:util'
 import { delay } from 'es-toolkit'
 import ky from 'ky'
@@ -44,6 +45,40 @@ const BUNX = '$HOME/.bun/bin/bunx'
 
 const exec = promisify(execFile)
 const http = ky.create({ retry: 0, throwHttpErrors: false, timeout: 30_000 })
+
+const localHostnames = new Set(
+  [hostname(), hostname().split('.')[0], 'localhost', 'local'].filter(Boolean),
+)
+
+const isLocalHost = (host: string): boolean => {
+  if (host === 'local') {
+    return true
+  }
+  const name = host.includes('@') ? host.split('@')[1] : host
+  return localHostnames.has(name)
+}
+
+const runCcusage = async (
+  host: string,
+  tool: 'claude' | 'codex',
+): Promise<{ stderr: string; stdout: string }> => {
+  const remoteCmd =
+    tool === 'claude'
+      ? `${REMOTE_ENV} ${BUNX} ccusage@${CCUSAGE_VERSION} claude daily --json --breakdown`
+      : `${REMOTE_ENV} ${BUNX} ccusage@${CCUSAGE_VERSION} codex daily --json`
+  if (isLocalHost(host)) {
+    const bunx = `${process.env.HOME}/.bun/bin/bunx`
+    const args =
+      tool === 'claude'
+        ? [`ccusage@${CCUSAGE_VERSION}`, 'claude', 'daily', '--json', '--breakdown']
+        : [`ccusage@${CCUSAGE_VERSION}`, 'codex', 'daily', '--json']
+    return exec(bunx, args, {
+      env: { ...process.env, PATH: `${process.env.HOME}/.local/bin:${process.env.PATH ?? ''}` },
+      maxBuffer: MAX_BUFFER,
+    })
+  }
+  return exec('ssh', [...SSH_ARGS, host, remoteCmd], { maxBuffer: MAX_BUFFER })
+}
 
 const claudeReport = z.object({
   daily: z
@@ -104,14 +139,12 @@ interface IngestRow {
 // Codex failure aborts the host (required). Claude is best-effort: product retired
 // on the Mac, so a missing report must not kill a Codex-bearing host.
 const rowsForHost = async (host: string): Promise<IngestRow[]> => {
-  const claudeCmd = `${REMOTE_ENV} ${BUNX} ccusage@${CCUSAGE_VERSION} claude daily --json --breakdown`
-  const codexCmd = `${REMOTE_ENV} ${BUNX} ccusage@${CCUSAGE_VERSION} codex daily --json`
   const [claudeSettled, codexOut] = await Promise.all([
-    exec('ssh', [...SSH_ARGS, host, claudeCmd], { maxBuffer: MAX_BUFFER }).then(
+    runCcusage(host, 'claude').then(
       (out) => ({ ok: true as const, out }),
       (error: unknown) => ({ ok: false as const, error }),
     ),
-    exec('ssh', [...SSH_ARGS, host, codexCmd], { maxBuffer: MAX_BUFFER }),
+    runCcusage(host, 'codex'),
   ])
   let claudeRows: IngestRow[] = []
   if (claudeSettled.ok) {

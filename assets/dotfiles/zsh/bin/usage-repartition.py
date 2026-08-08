@@ -32,6 +32,8 @@ An optional host that is unreachable is skipped.
 """
 import json
 import os
+import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -45,11 +47,42 @@ def env_required(name):
     return value
 
 
+def _local_names():
+    host = socket.gethostname()
+    short = host.split(".", 1)[0]
+    names = {host, short, "localhost", "local"}
+    try:
+        out = subprocess.run(
+            ["scutil", "--get", "LocalHostName"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            names.add(out.stdout.strip())
+    except OSError:
+        pass
+    return names
+
+
+LOCAL_NAMES = _local_names()
+
+
+def host_is_local(host):
+    name = host.split("@", 1)[-1]
+    return name in LOCAL_NAMES
+
+
 HOSTS = env_required("USAGE_COMPUTE_HOSTS").split(",")
 OPTIONAL = set(filter(None, os.environ.get("USAGE_OPTIONAL_HOSTS", "").split(",")))
 ELSE_ACCT = env_required("USAGE_ELSE_HOST").split("@", 1)[0]
 STATE = os.path.join(tempfile.gettempdir(), "usage-repartition")
-RSYNC = "/opt/homebrew/bin/rsync" if os.path.exists("/opt/homebrew/bin/rsync") else "rsync"
+_nix_rsync = shutil.which("rsync")
+RSYNC = (
+    "/opt/homebrew/bin/rsync"
+    if os.path.exists("/opt/homebrew/bin/rsync")
+    else (_nix_rsync or "rsync")
+)
 CM = "-o ControlMaster=auto -o ControlPath=/tmp/urp-cm-%C -o ControlPersist=180"
 SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"] + CM.split()
 SSH_E = "ssh -o BatchMode=yes -o ConnectTimeout=10 " + CM
@@ -108,6 +141,8 @@ def rsh(host, script, payload=""):
 
 
 def reachable(host):
+    if host_is_local(host):
+        return True
     return subprocess.run(SSH + [host, "true"]).returncode == 0
 
 
@@ -150,14 +185,22 @@ def route(accts):
         else:
             codex_by_dst[dst].append(f"{path}/{base}")
     for dst, projs in claude_by_dst.items():
+        dest = ACCT_HOST[dst]
+        if host_is_local(dest):
+            p(f"[route] claude -> {dst}: {len(projs)} project dirs (already local; skip)")
+            continue
         p(f"[route] claude -> {dst}: {len(projs)} project dirs")
         for pj in projs:
-            run(RS + [os.path.expanduser(f"~/.claude/projects/{pj}") + "/", f"{ACCT_HOST[dst]}:.claude/projects/{pj}/"], ok=CHURN_OK)
+            run(RS + [os.path.expanduser(f"~/.claude/projects/{pj}") + "/", f"{dest}:.claude/projects/{pj}/"], ok=CHURN_OK)
     for dst, files in codex_by_dst.items():
+        dest = ACCT_HOST[dst]
+        if host_is_local(dest):
+            p(f"[route] codex -> {dst}: {len(files)} sessions (already local; skip)")
+            continue
         lst = f"{STATE}/route-codex-{dst}.lst"
         open(lst, "w").write("\n".join(files) + "\n")
         p(f"[route] codex -> {dst}: {len(files)} sessions")
-        run(RS + ["--files-from", lst, os.path.expanduser("~/.codex/sessions") + "/", f"{ACCT_HOST[dst]}:.codex/sessions/"], ok=CHURN_OK)
+        run(RS + ["--files-from", lst, os.path.expanduser("~/.codex/sessions") + "/", f"{dest}:.codex/sessions/"], ok=CHURN_OK)
     p("[route] DONE")
 
 

@@ -1,0 +1,12 @@
+# Added by OrbStack: 'orb' SSH host for Linux machines
+# This only works if it's at the top of ssh_config (before any Host blocks).
+# This won't be added again if you remove it.
+Include ~/.orbstack/ssh/config
+
+# ssh takes the first value it sees for each keyword, so specific hosts must
+# stay above the catch-all Host * block or their settings are shadowed.
+Host dreamcomputer
+	IdentityFile ~/.ssh/dreamcomputer
+
+Host *
+	IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"

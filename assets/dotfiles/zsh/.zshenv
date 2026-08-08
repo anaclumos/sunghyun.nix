@@ -28,7 +28,9 @@ python3() {
 }
 
 if [[ -r "$HOME/.ssh/.secrets.env" ]]; then
+  set -a
   . "$HOME/.ssh/.secrets.env"
+  set +a
 fi
 
 if [[ -r "$HOME/.cargo/env" ]]; then
