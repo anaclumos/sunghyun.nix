@@ -57,7 +57,7 @@ Highest severity. Violated repeatedly; treat as hard stops.
 ## Git
 
 - Commit often (conventional commits, detailed body, no Co-Authored-By). Shared checkout: stage only your hunks. No force-push, no amend of pushed commits. To reconcile a pushed branch, merge the base in; never rebase it.
-- Default: open PR and stop (draft by default; title only unless a one-line why plus provenance is warranted). Project policy or explicit ship/merge mandate overrides (this repo ships straight to `main`).
+- Default: open PR and stop (draft by default; title only unless a one-line why plus provenance is warranted). Project policy or explicit ship/merge mandate overrides (sunghyun.nix itself ships straight to `main`).
 - Adversarial reviews: unhinted scope only; cite evidence; no nitpicks. Standing review asks in order: is the assumed fix correct; do we need to fix it; is this the right way; is this the most succinct. User-initiated review: present findings, ask before fixing. Never resolve someone else's review thread. Never reply "fixed" unless the fix landed live.
 
 ## Docs and Korean

@@ -15,6 +15,7 @@ cmd_verify() {
   check_cursor_agent
   check_coding_cli codex codex codex
   check_coding_cli claude claude claude-code
+  check_agent_guides
   check_tokenmaxxing
   check_aside
   check_tailscale
@@ -82,6 +83,35 @@ check_coding_cli() {
     step skipped "$id" "Homebrew absent, so the $package cask could not install yet; converges next switch"
   else
     step failed "$id" "$binary missing; the $package cask (macOS) / nixpkgs $package (Linux) should have installed it"
+  fi
+}
+
+# OUTCOMES.md row an: the global default instruction layer for Claude Code and
+# Codex resolves into the store. Both tools concatenate this file with
+# per-directory guides (closer files enter context later and win conflicts),
+# which is why only the global layer is managed and asserted here.
+check_agent_guides() {
+  local pair tool path resolved linked="" broken=""
+  for pair in "claude:$HOME/.claude/CLAUDE.md" "codex:$HOME/.codex/AGENTS.md"; do
+    tool="${pair%%:*}"
+    path="${pair#*:}"
+    if [ ! -e "$path" ]; then
+      broken="$broken $tool($path missing)"
+    elif ! resolved="$(readlink -f "$path" 2>/dev/null)" ||
+      [ "${resolved#/nix/store/}" = "$resolved" ]; then
+      broken="$broken $tool(resolves outside /nix/store)"
+    elif ! grep -q "agents are partners" "$path" 2>/dev/null; then
+      broken="$broken $tool(not the canonical guide)"
+    else
+      linked="$linked $tool"
+    fi
+  done
+  if [ -z "$broken" ]; then
+    step ok agent_guides "global agent guide linked into the store for${linked}"
+  elif is_headless; then
+    step skipped agent_guides "global agent guide not linked yet:${broken} (the next switch materializes it)"
+  else
+    step failed agent_guides "global agent guide not linked:${broken}; darwin-rebuild/home-manager switch materializes it"
   fi
 }
 

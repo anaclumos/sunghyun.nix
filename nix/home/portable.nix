@@ -19,4 +19,13 @@ in
   home.file.".config/zsh/lib".source = zsh + "/lib";
   home.file.".config/zsh/rc".source = zsh + "/rc";
   home.file.".config/zsh/bin".source = zsh + "/bin";
+
+  # Global default instruction layer for the coding CLIs (owner 2026-08-08).
+  # Both tools concatenate rather than override: this global file enters
+  # context first and hand-written per-directory CLAUDE.md / AGENTS.md files
+  # appear later and win conflicts, so only the global layer is managed here.
+  # The repo root AGENTS.md is the one canonical guide; per-assistant copies
+  # would drift.
+  home.file.".claude/CLAUDE.md".source = ../../AGENTS.md;
+  home.file.".codex/AGENTS.md".source = ../../AGENTS.md;
 }
