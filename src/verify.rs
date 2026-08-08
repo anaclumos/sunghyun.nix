@@ -47,6 +47,7 @@ pub fn run(opts: &VerifyOpts) -> Report {
     steps.push(check_launcher(&config));
     steps.push(check_keyboard_engine());
     steps.push(check_fn_state());
+    steps.push(check_reserved_hotkeys());
     steps.push(check_fn_tap());
     steps.push(check_kanata_config(&config));
     steps.push(check_hushlogin());
@@ -139,6 +140,11 @@ fn check_keyboard_engine() -> StepReport {
                 ("hyper tiling", "tile left"),
                 ("hyper+w right three quarters", "tile last-three-fourths"),
                 ("hyper browser", "open-default-browser"),
+                ("hyper+i iina", "open iina"),
+                ("hyper+n slack", "open slack"),
+                ("hyper+p preview", "open preview"),
+                ("hyper+r linear", "open linear"),
+                ("hyper+grave dark mode", "toggle-dark-mode"),
                 ("cmd tap = IME", "input-source ABC"),
                 // ⌘⇧V sends virtual ⌘Space then ⌘4 (spacebar only appears in
                 // that rule); the shell_command CLI hop was removed 2026-08-08.
@@ -179,7 +185,9 @@ fn check_ime_mapping(config: &Config) -> StepReport {
 
 fn check_apps(config: &Config) -> StepReport {
     // Hyper+J uses `open browser` (OS default HTTP handler), not a fixed apps.* key.
-    let required = ["calendar", "mail", "slack", "ghostty"];
+    let required = [
+        "calendar", "ghostty", "iina", "linear", "mail", "preview", "slack",
+    ];
     let missing: Vec<&str> = required
         .iter()
         .copied()
@@ -380,6 +388,30 @@ fn check_fn_state() -> StepReport {
         ),
         Err(crate::error::ActionError::Skipped(m)) => StepReport::skipped("fn_state", m),
         Err(e) => StepReport::failed("fn_state", e.to_string()),
+    }
+}
+
+/// OUTCOMES.md row w: ⌘⇧Space belongs to 1Password, so no macOS symbolic hot
+/// key may still be sitting on it.
+fn check_reserved_hotkeys() -> StepReport {
+    match crate::hotkeys::claimants() {
+        Ok(found) => {
+            let still: Vec<String> = found
+                .iter()
+                .filter(|c| c.enabled)
+                .map(|c| c.describe())
+                .collect();
+            if still.is_empty() {
+                StepReport::ok(
+                    "reserved_hotkeys",
+                    "⌘⇧Space reaches 1Password only (no system shortcut claims it)",
+                )
+            } else {
+                StepReport::failed("reserved_hotkeys", still.join("; "))
+            }
+        }
+        Err(crate::error::ActionError::Skipped(m)) => StepReport::skipped("reserved_hotkeys", m),
+        Err(e) => StepReport::failed("reserved_hotkeys", e.to_string()),
     }
 }
 

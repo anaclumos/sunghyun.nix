@@ -138,10 +138,12 @@ fn default_apps() -> BTreeMap<String, AppEntry> {
     let mut m = BTreeMap::new();
     for (key, bundle_id, name) in [
         ("calendar", "com.apple.iCal", "Calendar"),
+        ("iina", "com.colliderli.iina", "IINA"),
         ("kakaotalk", "com.kakao.KakaoTalkMac", "KakaoTalk"),
         ("linear", "com.linear", "Linear"),
         ("mail", "com.apple.mail", "Mail"),
         ("music", "com.apple.Music", "Music"),
+        ("preview", "com.apple.Preview", "Preview"),
         ("slack", "com.tinyspeck.slackmacgap", "Slack"),
         ("ghostty", "com.mitchellh.ghostty", "Ghostty"),
         ("tableplus", "com.tinyapp.TablePlus", "TablePlus"),

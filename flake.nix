@@ -40,6 +40,7 @@
             ./nix/darwin/modules/homebrew.nix
             ./nix/darwin/modules/kanata.nix
             ./nix/darwin/modules/defaults.nix
+            ./nix/darwin/modules/hotkeys.nix
             ./nix/darwin/modules/sunghyun.nix
             hostModule
             home-manager.darwinModules.home-manager
