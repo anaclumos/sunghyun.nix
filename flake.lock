@@ -123,11 +123,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786151693,
-        "narHash": "sha256-kG9xipfutIUAoVY36RxCkpgLMgwxmgZJtxn3ePV+2is=",
+        "lastModified": 1786173154,
+        "narHash": "sha256-qW/Vn5PWu4WLhOxqboYgkHOYfGJzFX+9d/FTpTR5Pm4=",
         "owner": "anaclumos",
         "repo": "sunghyun-sans",
-        "rev": "f3b9e98fa5ccc6e92556d8bb701e0b1da0cb2f01",
+        "rev": "35e4a9b5902640b0109ab5db3d4412c2ce6ec7c2",
         "type": "github"
       },
       "original": {
