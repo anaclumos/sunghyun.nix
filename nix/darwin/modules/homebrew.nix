@@ -158,18 +158,13 @@ in
         HOMEBREW_NO_ENV_HINTS = "1";
       };
     };
-    # dotenvx is not on homebrew-core (verified 2026-08-08: brew info dotenvx
-    # misses; only dotenvx/brew/dotenvx). Homebrew 6 refuses untrusted
-    # third-party taps and aborts the whole bundle, so the tap must carry
-    # trusted = true (nix-darwin emits `tap "...", trusted: true`).
-    taps = [
-      {
-        name = "dotenvx/brew";
-        trusted = true;
-      }
-    ];
+    # dotenvx is intentionally not here: it is only on the third-party
+    # dotenvx/brew tap (not homebrew-core), and on this macOS 27 host the
+    # prebuilt formula still fails Homebrew's Xcode minimum check while
+    # /Applications/Xcode.app is 26.6 (App Store still ships 26.6; CLT is
+    # already 27). Leaving it declared would fail `brew bundle` every
+    # switch. nixpkgs dotenvx lives in nix/home/portable.nix instead.
     brews = [
-      "dotenvx/brew/dotenvx"
       "fnm"
       "gh"
       "kanata"

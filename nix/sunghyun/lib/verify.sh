@@ -177,12 +177,18 @@ check_orbstack() {
   fi
 }
 
-# OUTCOMES.md row as: dotenvx, vercel, pscale and stripe CLIs on PATH from
+# OUTCOMES.md row as: dotenvx (nixpkgs), plus vercel/pscale/stripe from
 # Homebrew formulae (stripe-cli installs the `stripe` binary).
 check_dev_clis() {
-  local entry id binary package found missing=""
+  local found missing=""
+  if found="$(first_existing "/etc/profiles/per-user/$USER/bin/dotenvx" "$HOME/.nix-profile/bin/dotenvx")" ||
+    found="$(command -v dotenvx 2>/dev/null)"; then
+    :
+  else
+    missing="$missing dotenvx(nixpkgs)"
+  fi
+  local entry id binary package
   for entry in \
-    "dotenvx|dotenvx|dotenvx/brew/dotenvx" \
     "vercel|vercel|vercel" \
     "pscale|pscale|pscale" \
     "stripe|stripe|stripe-cli"; do
@@ -200,11 +206,9 @@ check_dev_clis() {
   if [ -z "$missing" ]; then
     step ok dev_clis "dotenvx vercel pscale stripe present"
   elif is_headless; then
-    step skipped dev_clis "dev CLIs missing:$missing (headless; brew installs them on a GUI Mac)"
-  elif [ ! -x /opt/homebrew/bin/brew ]; then
-    step skipped dev_clis "Homebrew absent, so the declared formulae could not install yet; converges next switch"
+    step skipped dev_clis "dev CLIs missing:$missing (headless; converges on the next switch)"
   else
-    step failed dev_clis "dev CLIs missing:$missing; homebrew.brews should have installed them"
+    step failed dev_clis "dev CLIs missing:$missing; nixpkgs dotenvx / homebrew.brews should have installed them"
   fi
 }
 

@@ -5,10 +5,15 @@ in
 {
   home.stateVersion = "26.05";
 
-  # nixpkgs and not homebrew.brews: this one entry covers macOS and the Linux
-  # home configs alike, and btop has no vendor self-update channel that would
-  # need a writable install like cursor-cli does.
-  home.packages = [ pkgs.btop ];
+  # nixpkgs and not homebrew.brews: these entries cover macOS and the Linux
+  # home configs alike. btop has no vendor self-update channel that would
+  # need a writable install like cursor-cli does. dotenvx is only on the
+  # third-party dotenvx/brew tap, and Homebrew on this macOS 27 host refuses
+  # that prebuilt formula while /Applications/Xcode.app is still 26.6.
+  home.packages = [
+    pkgs.btop
+    pkgs.dotenvx
+  ];
 
   home.file.".hushlogin".text = "";
 
