@@ -1,6 +1,6 @@
 # sunghyun.nix
 
-Outcome-driven machine setup: a **nix-darwin** flake owns everything declarative on the Mac, a portable **Home Manager** layer covers Linux hosts, plus a small Rust CLI (`sunghyun`) for what Nix genuinely cannot do. The spec is [OUTCOMES.md](OUTCOMES.md), not any particular tool.
+Outcome-driven machine setup: a **nix-darwin** flake owns everything declarative on the Mac, a portable **Home Manager** layer covers Linux hosts, plus a generated `sunghyun` CLI (shell and JXA, built by the flake) for what Nix genuinely cannot express. The spec is [OUTCOMES.md](OUTCOMES.md), not any particular tool.
 
 **One-shot is the only setup UX.** Paste one command; the script installs Nix, applies the flake, and surfaces macOS's own one-time permission prompts (opens the exact Settings pane, polls, skips gracefully on timeout). Never a multi-step “install Nix, then rebuild, then post-switch” primary path.
 
@@ -87,17 +87,17 @@ Policy: the system opens the exact Settings pane (or lets macOS prompt) and poll
 |---|---|
 | Karabiner-Elements remap | macOS's own prompts on first launch (grabber); DriverKit dext approval |
 | Kanata (opt-in engine) | Input Monitoring; Karabiner-DriverKit VirtualHIDDevice **v6.2.0**; kanata ≥ 1.12.0; enable only via `kanata enable --safe` |
-| `tile` / clipboard paste | Accessibility for `/usr/local/bin/sunghyun` itself (pane opened + polled by post-switch) |
+| `tile` window placement | Accessibility for Hammerspoon, which runs the placement (pane opened + polled by post-switch) |
 | `mas` apps | Apple ID from Setup Assistant; signed out ⇒ graceful skip |
 
-TCC notes (2026-08-08): grants attach to the binary's code identity, so every rebuild that changes the binary drops the Accessibility grant until post-switch re-converges. Tiling runs on the native AX API inside the binary (not osascript), so the direct grant on `/usr/local/bin/sunghyun` is sufficient even when Karabiner's `karabiner_console_user_server` spawns it. `verify` probes the binary's own grant with TCC responsibility disclaimed; trust inherited from a terminal never false-greens it.
+TCC notes (2026-08-08): window placement moved into Hammerspoon precisely because grants attach to a code identity. One installed app bundle holds the Accessibility grant across every rebuild, where the previous compiled CLI lost it whenever the binary changed. `verify` asks Hammerspoon for `hs.accessibilityState()` over its own IPC port, so trust inherited from a terminal never false-greens it. Nothing else in the repo needs a TCC grant: input source switching, appearance and the reserved-chord fix go through TIS and SkyLight, which have no TCC gate.
 
 Pinned driver: [Karabiner-DriverKit-VirtualHIDDevice v6.2.0](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/tag/v6.2.0).
 
 ## Keyboard notes
 
 - Caps tap → tile maximize; Caps hold → Hyper.
-- Hyper arrows / 1-4 / Enter → tiling; Hyper+W → right three quarters; Hyper+J → `open-default-browser`.
+- Hyper arrows / 1-4 / Enter → tiling; Hyper+W → right three quarters; Hyper+J → `sunghyun open browser`.
 - L⌘ tap → ABC; R⌘ tap → 2-Set Korean; hold → normal ⌘ chords (⌘C/V).
 - ⌘⇧V → Spotlight Clipboard History (virtual ⌘Space, ⌘4).
 - Delivered by Karabiner-Elements complex modifications (`assets/karabiner.json`, Home Manager-managed).
