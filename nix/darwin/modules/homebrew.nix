@@ -55,7 +55,6 @@
       Amphetamine = 937984704;
       KakaoTalk = 869223134;
       "What Watt?" = 6756065687;
-      Xcode = 497799835;
     };
   };
 }

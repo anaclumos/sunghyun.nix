@@ -49,10 +49,10 @@ One channel per distribution reality. Installing is the declarative outcome; eve
 |---|---|
 | Homebrew brews | fnm, gh, mas, mole, pscale, ripgrep, `getsentry/tools/sentry`, stripe-cli, tmux, vercel |
 | Homebrew casks | 1password, aside, claude-code, codex, codexbar, cursor, cursor-cli, gcloud-cli, ghostty, hammerspoon, iina, itsycal, karabiner-elements, linear, macs-fan-control, obsidian, orbstack, slack, tailscale-app |
-| `homebrew.masApps` | Xcode, KakaoTalk, What Watt?, Amphetamine |
+| `homebrew.masApps` | KakaoTalk, What Watt?, Amphetamine |
 | nixpkgs `home.packages` (macOS + Linux) | btop, bun, dotenvx, inngest, resend (`nix/pkgs/resend-cli.nix`) |
 | nixpkgs, Linux only | claude-code, codex, cursor-cli |
-| Manual | mint (Mintlify): `bun add --global mint`, lands in `~/.bun/bin` |
+| Manual | mint (Mintlify): `bun add --global mint`, lands in `~/.bun/bin`; Xcode from [Apple Beta](https://developer.apple.com/download/) |
 
 - Brew carries vendor self-update channels and macOS-only tools. The coding-CLI casks stay writable so `cursor-agent update` and friends work, which a Nix store copy cannot.
 - `stripe-cli` installs `stripe`. The sentry tap formula installs `sentry`; `sentry-cli` is a zsh alias that prints "Use `sentry --help`" because the homebrew-core `sentry-cli` formula is a different tool (owner 2026-08-08).
@@ -62,6 +62,7 @@ One channel per distribution reality. Installing is the declarative outcome; eve
 - dotenvx comes from nixpkgs, never its third-party tap: on macOS 27 Homebrew refuses that formula while `/Applications/Xcode.app` trails the CLT (row as).
 - nixpkgs bun guarantees bun on a fresh machine; a curl-installed `~/.bun` wins on PATH and keeps its own upgrade channel.
 - On macOS the coding CLIs come from Homebrew only, never also from `home.packages`, so two binaries cannot fight over PATH order.
+- Xcode comes from Apple Beta, never the App Store (owner 2026-08-08): the App Store build trails the CLT (26.6 vs 27, row as), and beta downloads sit behind the owner's developer sign-in, so no channel here can carry them. `Xcode-beta.app` is installed live; `mas` cannot uninstall, so removing the old App Store copy stays manual.
 
 ## Dotfiles
 
@@ -127,7 +128,7 @@ Everything here is a desired result, not a stack (owner reframing 2026-08-07). I
 | p | cursor-agent present on macOS and screenless Linux | macOS: `cursor-cli` cask, writable for self-update. Linux: nixpkgs `cursor-cli` |
 | v | codex and claude CLIs present on macOS and screenless Linux; interactive zsh ships `cc` = `claude --dangerously-skip-permissions` | macOS: `codex` and `claude-code` casks. Linux: nixpkgs. `cc` is a zsh function in `assets/dotfiles/zsh/rc/aliases.zsh` |
 | q | A machine keeps its own identity; only the config that names a machine renames it | `hosts/auracomputer.nix` is the sole config setting naming fields; every other Mac activates `.#default`, whose naming stays unset. Incident behind the rule: a VM that activated the named host came up as `auracomputer-2.local` |
-| r | Mac App Store apps converge | `homebrew.masApps` (Brewfile `mas` lines). Supersedes the 2026-08-08 convergence LaunchDaemon, retired the same day in the declarative rewrite. Needs a signed-in App Store; on this machine all four apps are installed so the lines no-op. `mas` cannot uninstall, so removal stays manual |
+| r | Mac App Store apps converge | `homebrew.masApps` (Brewfile `mas` lines). Supersedes the 2026-08-08 convergence LaunchDaemon, retired the same day in the declarative rewrite. Needs a signed-in App Store; on this machine all three apps are installed so the lines no-op. `mas` cannot uninstall, so removal stays manual. Xcode left this channel for Apple Beta (owner 2026-08-08) |
 | s | A VM never wedges on the App Store | Superseded 2026-08-08: the `sunghyun virt` detector is retired with the CLI. A signed-out guest now fails the `mas` Brewfile lines instead of skipping them; the named-host rule (row q) keeps VMs on `.#default` |
 | v | Sunghyun Sans present, every family, macOS and Linux | flake input pinned in `flake.lock`; macOS `fonts.packages`, Linux `nix/home/fonts.nix` |
 | aa | Dia is gone | Cask dropped 2026-08-08; live uninstall done then |
